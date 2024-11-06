@@ -1,0 +1,4 @@
+tea 0
+coffee 1
+juice 2
+bread 3
