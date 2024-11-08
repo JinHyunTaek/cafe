@@ -1,0 +1,3 @@
+americano 1
+cappuccino 2
+cafe_latte 3
