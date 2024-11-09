@@ -5,10 +5,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include "cafe.h"
 
-void *handle_customer(void *arg);
+void handle_customer(int sock);
 void print_welcome_msg();
 int print_and_return_menu_by_category(int category);
 void error_handling(char *msg);
@@ -17,7 +16,6 @@ int main(int argc, char *argv[])
 {
 	int sock;
 	struct sockaddr_in serv_addr;
-	pthread_t t_id;
 	if (argc != 3)
 	{
 		printf("Usage : %s <IP> <port>\n", argv[0]);
@@ -34,15 +32,13 @@ int main(int argc, char *argv[])
 	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
 		error_handling("connect() error");
 	restore_menu();
-	pthread_create(&t_id, NULL, handle_customer, (void *)&sock);
-	pthread_join(t_id, NULL);
+	handle_customer(sock);
 	close(sock);
 }
 
-void *handle_customer(void *arg)
+void handle_customer(int sock)
 {
 	int my_money = 0;
-	int sock = *(int *)arg;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
 	while (1)
@@ -80,7 +76,7 @@ void *handle_customer(void *arg)
 			break;
 		case QUIT:
 			write(sock, &req_packet, sizeof(REQ_PACKET));
-			return NULL;
+			return;
 		}
 	}
 }
