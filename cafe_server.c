@@ -119,7 +119,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 	int i = find_item_idx_by_category_and_key(item_category, item_key);
 	if (!items[i].stock)
 	{
-		sprintf(res_msg, "Sorry. Item %s is currently unaffordable.", items[i].name);
+		sprintf(res_msg, "Sorry. Item %s is currently out of stock.", items[i].name);
 		*result = OUT_OF_STOCK;
 	}
 	switch (item_category)
