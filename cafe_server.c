@@ -20,6 +20,7 @@ void make_menu(int item_category, int item_key, char *res_msg);
 void backup();
 void error_handling(char *msg);
 void *handle_clnt(void *arg);
+void *handle_admin(void *args);
 void remove_clnt(int clnt_sock);
 
 int main(int argc, char *argv[])
@@ -34,6 +35,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	//서버 소켓 바인딩, 리스닝 작업
+
 	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
 
 	memset(&serv_adr, 0, sizeof(serv_adr));
@@ -46,21 +49,28 @@ int main(int argc, char *argv[])
 	if (listen(serv_sock, 5) == -1) // after this function call, client could request to server (= server is ready to listen)
 		error_handling("listen() error");
 	puts("------------------------\nCafe Server Start\n------------------------");
+
+	//서버를 부팅하며 item 폴더에 있는 아이템들을 cafe.c 에 있는 ITEM 구조체 items에 저장함.
 	restore_menu();
+
+
 	while (1)
 	{
+		// 클러아언트가 접속하면 클라이언트와 소켓 통신을 시작하고 각각의 쓰레드를 만들어서 작업
 		clnt_adr_sz = sizeof(clnt_adr);
 		clnt_sock = accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_sz);
 		printf("Connected client IP: %s, clnt_sock:%d \n", inet_ntoa(clnt_adr.sin_addr), clnt_sock);
 		clnt_socks[clnt_cnt++] = clnt_sock;
-
+		// 쓰레드를 만들어 쓰레드 내에서 작업
 		pthread_create(&t_id, NULL, handle_clnt, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
 		pthread_detach(t_id);
 	}
+	// 종료시 쓰레드를 모두 닫고 서버 소켓도 닫음
 	pthread_mutex_destroy(&mutex);
 	close(serv_sock);
 }
 
+// 소비자 전용 핸들러
 void *handle_clnt(void *arg)
 {
 	int clnt_sock = *(int *)arg;
@@ -68,21 +78,29 @@ void *handle_clnt(void *arg)
 	RES_PACKET res_packet;
 	while (1)
 	{
+		// 요청 패킷과 반응 패킷을 선언
 		memset(&req_packet, 0, sizeof(REQ_PACKET));
 		memset(&res_packet, 0, sizeof(RES_PACKET));
+		// 클라이언트 소켓의 요청을 패킷에 저장받아 처리
 		read(clnt_sock, &req_packet, sizeof(REQ_PACKET)); // blocked until write request is arrived by client
 		res_packet.cmd = req_packet.cmd;
+
+		// 요청 패킷의 cmd 값 ( 클라이언트가 입력한 명령어 ) 에 따라 아래 내용을 수행
 		switch (req_packet.cmd)
 		{
-		case QUIT:
+		case QUIT:	//클라이언트 종료
 			remove_clnt(clnt_sock);
 			return NULL;
-		case ORDER:
+		case ORDER:	//클라이언트가 주문 cmd 를 실행
 			// pthread_mutex_lock(&mutex);
 			// waiting_clnt += 1;
 			// pthread_mutex_unlock(&mutex);
 			pthread_mutex_lock(&mutex); // needs to synchronize
+
+			// 요청 패킷의 아이템 카테고리와 아이템 번호를 input으로 받아 반응 패킷의 msg를 저장 ( 메뉴 준비됐다는 메세지 )
 			make_menu(req_packet.item_category, req_packet.item_key, res_packet.res_msg);
+
+			// 클라이언트 소켓으로 반응 패킷 전달 ( 메뉴가 준비 다 되었다는 메세지 )
 			write(clnt_sock, &res_packet, sizeof(RES_PACKET));
 			// waiting_clnt -= 1;
 			pthread_mutex_unlock(&mutex);
@@ -90,6 +108,30 @@ void *handle_clnt(void *arg)
 	}
 }
 
+// admin 전용 핸들러
+void *handle_admin(void *arg)
+{
+	int admin_sock = *(int *)arg;
+	REQ_PACKET req_packet;
+	RES_PACKET res_packet;
+	while (1)
+	{
+		// 요청 패킷과 반응 패킷을 선언
+		memset(&req_packet, 0, sizeof(REQ_PACKET));
+		memset(&res_packet, 0, sizeof(RES_PACKET));
+		// 어드민 소켓의 요청을 패킷에 저장받아 처리
+		read(admin_sock, &req_packet, sizeof(REQ_PACKET)); // blocked until write request is arrived by client
+
+		// 요청 패킷의 cmd 값 ( 클라이언트가 입력한 명령어 ) 에 따라 아래 내용을 수행
+		res_packet.cmd = req_packet.cmd;
+		
+
+		/*구현필요*/
+		
+	}
+}
+
+// 메뉴가 만들어질 때까지 기다리고, 해당 메뉴의 이름을 반응 패킷에 전달해주는 함수
 void make_menu(int item_category, int item_key, char *res_msg)
 {
 	char temp_msg[BUF_SIZE];
@@ -120,6 +162,7 @@ void make_menu(int item_category, int item_key, char *res_msg)
 	error_handling("could not find menu");
 }
 
+// 클라이언트 접속해제
 void remove_clnt(int clnt_sock)
 {
 	for (int i = 0; i < clnt_cnt; i++)
