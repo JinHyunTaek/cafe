@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 	// connect request to server (blocked until accept() is called)
 	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
 		error_handling("connect() error");
+	int me = CLIENT;
+	write(sock,&me,sizeof(me));
 	restore_menu();
 	handle_customer(sock);
 	close(sock);

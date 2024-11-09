@@ -58,8 +58,16 @@ int main(int argc, char *argv[])
 		clnt_sock = accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_sz);
 		printf("Connected client IP: %s, clnt_sock:%d \n", inet_ntoa(clnt_adr.sin_addr), clnt_sock);
 		clnt_socks[clnt_cnt++] = clnt_sock;
+		int is_admin;
+		if (read(clnt_sock, &is_admin, sizeof(is_admin)) == -1)
+			error_handling("read()");
 		// 쓰레드를 만들어 쓰레드 내에서 작업
-		pthread_create(&t_id, NULL, handle_clnt, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
+		if (is_admin == ADMIN)
+			pthread_create(&t_id, NULL, handle_admin, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
+		else if(is_admin == CLIENT)
+			pthread_create(&t_id, NULL, handle_clnt, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
+		else
+			error_handling("who are you?");
 		pthread_detach(t_id);
 	}
 	// 종료시 쓰레드를 모두 닫고 서버 소켓도 닫음

@@ -5,6 +5,9 @@
 #define MENU_NAME_SIZE 20
 #define PWD_SIZE 10
 
+#define ADMIN 1
+#define CLIENT 2
+
 #define CATEGORY_SIZE 4
 #define COFFEE 1
 #define TEA 2

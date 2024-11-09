@@ -10,7 +10,6 @@
 
 void *handle_customer(void *arg);
 void print_welcome_msg();
-void error_handling(char *msg);
 
 int main(int argc, char*argv[]){
 	int sock;
@@ -32,9 +31,9 @@ int main(int argc, char*argv[]){
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
         error_handling("connect() error");
 	//get item info from server (sequence : write() -> read())
-	if(read(sock,&items,sizeof(ITEM)*MAX_ITEM)==-1){
-		error_handling("read() error");
-	}
+	int me = ADMIN;
+	write(sock,&me,sizeof(me));
+	restore_menu();
     pthread_create(&t_id, NULL, handle_customer, (void *)&sock);
 	pthread_join(t_id, NULL);
 	close(sock);
@@ -61,10 +60,4 @@ void print_welcome_msg(){
 		puts(items[i].name);
 	}
 	printf("1: add item, 2:get items 3: update item, 4: delete item, 5: get all customers 6: quit:");
-}
-
-void error_handling(char *msg)
-{
-    puts(msg);
-    exit(1);
 }
