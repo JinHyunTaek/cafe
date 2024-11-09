@@ -1,2 +1,2 @@
-orange_juice 1
-apple_juice 2
+orange_juice 1 10 2000
+apple_juice 2 10 2000

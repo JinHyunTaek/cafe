@@ -1,2 +1,2 @@
-green_tea 1
-lemon_tea 2
+green_tea 1 5 1500
+lemon_tea 2 5 2000

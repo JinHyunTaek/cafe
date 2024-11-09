@@ -13,8 +13,7 @@
 
 // cmd
 #define ORDER 1
-#define CANCEL 2
-#define QUIT 3
+#define QUIT 2
 
 // waiting(sleep) time
 #define W_COFFEE 2
@@ -23,15 +22,16 @@
 #define W_BRUNCH 3
 
 // order status
-#define WAITING 0
-#define READY 1
+// #define WAITING 1
+#define READY 2
+#define OUT_OF_STOCK 3
 
 typedef struct ITEM{
 	int category;
-	int key; //item_no
+	int key; // primary key per item category
 	char name[MENU_NAME_SIZE];
-	// int stock; //not yet
-	// int price; //not yet
+	int stock; 
+	int price; 
 }ITEM;
 
 // typedef struct USER{
@@ -46,7 +46,6 @@ typedef struct REQ_PACKET{
 }REQ_PACKET;
 
 typedef struct RES_PACKET{
-	int cmd;
 	int result;
 	char res_msg[BUF_SIZE];
 }RES_PACKET;
@@ -60,5 +59,6 @@ extern int juice_cnt;
 extern int brunch_cnt;
 
 void restore_menu();
-
+int find_item_idx_by_category_and_key(int item_category, int item_key);
+void error_handling(char *msg);
 // void restore_user();
