@@ -13,6 +13,7 @@
 #define TEA 2
 #define JUICE 3
 #define BRUNCH 4
+#define ALL_CATEGORY 5
 
 // cmd for client
 #define ORDER 1
@@ -23,6 +24,7 @@
 #define SHOW_ITEM 2
 #define UPDATE_ITEM 3
 #define DELETE_ITEM 4
+#define SHOW_CUSTOMER 5
 #define ADMIN_QUIT 6
 
 

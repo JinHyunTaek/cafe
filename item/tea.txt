@@ -1,3 +1,3 @@
-green_tea 1 5 1500
-lemon_tea 2 5 2000
-teaof 3 4 2000
+orange_juice 1 10 2000
+apple_juice 2 10 2000
+mm 3 3234 231

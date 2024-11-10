@@ -1,3 +1,6 @@
 coffee 1 5 3000
 cafuu 2 2 1000
 caffe2 3 5 10000
+coffee 4 6 100000
+cou 5 32 160000
+add6 6 3 2600

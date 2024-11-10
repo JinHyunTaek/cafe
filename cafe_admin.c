@@ -15,6 +15,7 @@ void error_handling(char *msg);
 void display_single_item(ITEM item);
 
 void add_item(ADMIN_REQ_PACKET *);
+void show_item(ADMIN_REQ_PACKET *);
 
 
 int main(int argc, char*argv[]){
@@ -59,7 +60,9 @@ void handle_admin(int sock){
 			case ADD_ITEM:
 				add_item(&req_packet);
 				break;
-
+			case SHOW_ITEM:
+				show_item(&req_packet);
+				break;
 
 
 			case ADMIN_QUIT:
@@ -73,9 +76,13 @@ void handle_admin(int sock){
 		//서버 응답까지 대기
 		read(sock,&res_packet, sizeof(ADMIN_RES_PACKET));
 
+
+		// 파일의 메뉴와 admin의 items 배열을 동기화 합니다.
+		restore_menu();
+		
+		// 추가 요청 처리 완료 후 처리
 		if( (res_packet.cmd == ADD_ITEM) && (res_packet.result == 1) ){
-			// 서버에 메뉴가 추가됐으니 동기화해야겠죠. 추가한 김에 카테고리 메뉴들도 좀 보여줍시다.
-			restore_menu();
+			
 
 			printf("	========== Here's Changed Menu ==========\n");
 			printf("category	key	name		stock	price\n");
@@ -85,8 +92,13 @@ void handle_admin(int sock){
 				display_single_item(items[i]);
 				}
 			}
-			printf("\nPRESS ANY BUTTEN");
-			getchar();getchar();	// 앞에서 \n 받고 아무거나 누르면 넘어가게 설정
+			printf("\nPRESS Enter");
+			getchar();getchar();	// 앞에서 \n 받고 enter 로 넘어감
+		}
+
+		// SHOW 요청 처리 완료 후 처리. 동기화가 됐으니 출력해봅시다.
+		else if( (req_packet.cmd == SHOW_ITEM) && (res_packet.result == 1)){
+			/* 현재 구현중 */
 		}
 	}
 }
@@ -94,7 +106,7 @@ void handle_admin(int sock){
 void print_welcome_msg(){
 	puts("		============ MAIN ===========");
 	
-	printf("	1: add item\n	2: show items\n	 3: update item,\n	4: delete item\n	5: get all customers\n	6: quit\n\ninput :");
+	printf("	1: add item\n	2: show items\n	 3: update item,\n	4: delete item\n	5: show all customers\n	6: quit\n\ninput :");
 }
 
 // 한 ITEM 구조체를 [	카테고리	키	이름	수량	가격	] 형식으로 출력합니다. 각 속성 사이 공백은 탭입니다.
@@ -108,25 +120,52 @@ void add_item(ADMIN_REQ_PACKET* req_packet){
 
 	//ITEM new_menu 에 아이템 속성을 입력받아 추가함.
 
-	puts("Which category do you want to add?");
-	puts("1. Coffee	2. Tea");
-	puts("3. juice	4. BRUNCH");
+	puts("\n\t ========== ADD MENU ==========");
+	puts("\tWhich category do you want to add?");
+	puts("\t1. Coffee	2. Tea");
+	puts("\t3. juice	4. BRUNCH");
 	while(1){
 		scanf("%d",&req_packet->item.category);
 		if( (req_packet->item.category < 1) || (req_packet->item.category > CATEGORY_SIZE) ){
-			printf("	! Please Enter valid value ( 1 ~ %d ) !\n", CATEGORY_SIZE);
+			printf("	< Please Enter valid value ( 1 ~ %d ) >\n", CATEGORY_SIZE);
 			continue;
 		}
 		break;
 	}
-	printf("Please insert the Name, stock, price of the menu\n [Usage : Name stock price] : ");
+	puts("Please insert the Name, stock, price of the menu\n");
+
+	// 하나씩 입력하는게 직관적일 거 같아서 바꿨습니다.
 	while(1){
-		scanf("%s %d %d", req_packet->item.name, &req_packet->item.stock, &req_packet->item.price);
+		printf("[Menu Name] : ");
+		scanf("%s", req_packet->item.name);
+
+		printf("[Item Stock] : ");
+		scanf("%d", &req_packet->item.stock);
+
+		printf("[Item Price] : ");
+		scanf("%d", &req_packet->item.price);
+
 		//error handling?
 		break;
 	}
 
+}
+
+void show_item(ADMIN_REQ_PACKET * req_packet){
+
 	
-	
-	
+	puts("\n\t ========== What items do you want to see ITEM? ==========");
+	puts("\t1. coffee");
+	puts("\t2. tea");
+	puts("\t3. juice");
+	puts("\t4. brunch");
+	puts("\t5. all");
+
+	while(1){
+		printf("input : ");
+		scanf("%d", req_packet->item.category);
+		if( (req_packet->item.category > 0 ) && ( req_packet->item.category < 6)) break;
+		puts("Please input valid value ( 1 ~ 5 ) : ");
+	}
+
 }

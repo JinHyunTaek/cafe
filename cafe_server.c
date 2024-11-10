@@ -23,8 +23,11 @@ void *handle_clnt(void *arg);
 void *handle_admin(void *args);
 void remove_clnt(int clnt_sock);
 
+void synchronize(int what_category);
+
 
 int admin_add_item(ITEM);
+int admin_show_item(int);
 
 int main(int argc, char *argv[])
 {
@@ -129,6 +132,7 @@ void *handle_admin(void *arg)
 			res_packet.result = admin_add_item(req_packet.item);
 			break;
 		case SHOW_ITEM:
+			res_packet.result = admin_show_item(req_packet.item.category);
 			break;
 		case UPDATE_ITEM:
 			break;
@@ -141,6 +145,7 @@ void *handle_admin(void *arg)
 
 		// 어드민이 요청한 입력이 잘 처리 됐는지, 어떤 요청이 처리됐는지 등을 전해줍니다. 
 		write(admin_sock, &res_packet, sizeof(ADMIN_RES_PACKET));
+		printf("Accomplished\n");
 	}
 }
 
@@ -182,8 +187,8 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 
 // 메뉴 추가에 성공하면 1, 아니면 0를 반환합니다.
 int admin_add_item(ITEM item){
-	FILE * fp = NULL;
-	
+
+
 	// 아이템의 카테고리에 맞춰 카테고리 메뉴 수와 전체 수를 더하고, server의 items 배열에 추가한 메뉴를 add 합니다.
 	// 아이템에 따라 여는 파일의 이름도 다릅니다.
 	switch(item.category){
@@ -191,25 +196,21 @@ int admin_add_item(ITEM item){
 			item.key = ++coffee_cnt;
 			total_item_cnt ++;
 			items[total_item_cnt-1] = item;
-			fp = fopen("./item/coffee.txt", "wt");
 			break;
 		case TEA:
 			item.key = ++tea_cnt;
 			total_item_cnt ++;
 			items[total_item_cnt-1] = item;
-			fp = fopen("./item/tea.txt", "wt");
 			break;
 		case JUICE:
 			item.key = ++juice_cnt;
 			total_item_cnt ++;
 			items[total_item_cnt-1] = item;
-			fp = fopen("./item/juice.txt", "wt");
 			break;
 		case BRUNCH:
 			item.key = ++brunch_cnt;
 			total_item_cnt ++;
 			items[total_item_cnt-1] = item;
-			fp = fopen("./item/brunch.txt", "wt");
 			break;
 		default:
 			puts("Guess you typed wrong category?");
@@ -217,21 +218,7 @@ int admin_add_item(ITEM item){
 	}
 
 	// 추가한 메뉴가 있는 파일은 내용을 모두 지우고 서버의 정보로 동기화합니다.
-		if(!fp){
-			printf("fopen error\n");
-			return 0;
-		}
-	for(int i = 0 ; i < total_item_cnt ; i++){
-		// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
-		if(items[i].category == item.category){
-			fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
-	}
-
-	// 이유는 모르겠는데 puts 대신 printf를 하면 출력이 안되네요. 아마 \n를 쓰면 되는걸 보면 버퍼 문제인거 같은데
-	// 그냥 puts 쓰면 되니까 puts썼고 어차피 디버깅용이라 후에 지워도 무방합니다.
-	puts("Iclose!");
-	fclose(fp);
+	synchronize(item.category);
 
 	/* 무조건 필요한 과정은 아니긴하다만, 파일의 메뉴 순서로 ITEM 배열을 
 	다시 읽어옵니다. 이걸 하는 이유는, 지금 ITEM 배열의 끝에 추가한 아이템이 있잖아요? 그걸 같은 카테고리 애들이랑
@@ -243,7 +230,70 @@ int admin_add_item(ITEM item){
 
 }
 
+// 사실 show 명령은 굳이 서버와 파일을 동기화할 필요가 없긴한데, 안정성을 위해서 한 번 동기화 하고 합니다.
+// 중요한 건 저희가 보여달라고 한 카테고리 파일만 동기화 합니다. 전체를 하는 것이 아니에요
+int admin_show_item(int category){
+	synchronize(category);
+	// 파일에 업로드한 후 서버의 items 배열을 재정렬합니다. 그냥 보기 예쁘려고요.
+	restore_menu();
+	return 1;
+}
 
+// 서버의 아이템 정보 --> 파일에 동기화 시키는 매우 중요한 합수입니다.
+void synchronize(int what_category){
+	FILE *fp = NULL;
+
+	if( (what_category == COFFEE) || (what_category == ALL_CATEGORY) ){
+		// coffee 카테고리 동기화
+		fp = fopen("./item/coffee.txt","wt");
+		for(int i = 0 ; i < total_item_cnt ; i++){
+			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
+			if(items[i].category == COFFEE){
+				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			}
+		}
+		fclose(fp);
+	}
+
+	if ( (what_category == TEA) || (what_category == ALL_CATEGORY) ){
+	// tea 카테고리 동기화
+		fp = fopen("./item/tea.txt","wt");
+			for(int i = 0 ; i < total_item_cnt ; i++){
+			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
+			if(items[i].category == TEA){
+				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			}
+		}
+		fclose(fp);
+	}
+
+
+	if( (what_category == JUICE) || (what_category == ALL_CATEGORY) ){
+		// juice 카테고리 동기화
+		fp = fopen("./item/tea.txt","wt");
+			for(int i = 0 ; i < total_item_cnt ; i++){
+			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
+			if(items[i].category == JUICE){
+				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			}
+		}
+		fclose(fp);
+	}
+
+	if ( (what_category == BRUNCH) || (what_category == ALL_CATEGORY) ){
+		// brunch 카테고리 동기화
+		fp = fopen("./item/brunch.txt","wt");
+			for(int i = 0 ; i < total_item_cnt ; i++){
+			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
+			if(items[i].category == BRUNCH){
+				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			}
+		}
+		fclose(fp);
+	}
+	
+	
+}
 
 
 // 클라이언트 접속해제
