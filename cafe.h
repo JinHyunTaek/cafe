@@ -14,9 +14,17 @@
 #define JUICE 3
 #define BRUNCH 4
 
-// cmd
+// cmd for client
 #define ORDER 1
 #define QUIT 2
+
+// cmd for admin
+#define ADD_ITEM 1
+#define SHOW_ITEM 2
+#define UPDATE_ITEM 3
+#define DELETE_ITEM 4
+#define ADMIN_QUIT 6
+
 
 // waiting(sleep) time
 #define W_COFFEE 2
@@ -29,6 +37,8 @@
 #define READY 2
 #define OUT_OF_STOCK 3
 
+
+//파일에는 name key stock price 순으로 저장됨
 typedef struct ITEM{
 	int category;
 	int key; // primary key per item category
@@ -49,9 +59,22 @@ typedef struct REQ_PACKET{
 }REQ_PACKET;
 
 typedef struct RES_PACKET{
+	int cmd;
 	int result;
 	char res_msg[BUF_SIZE];
 }RES_PACKET;
+
+
+// 어드민의 패킷은 따로 설정했습니다
+typedef struct ADMIN_REQ_PACKET{
+	int cmd;
+	ITEM item;
+}ADMIN_REQ_PACKET;
+typedef struct ADMIN_RES_PACKET{
+	int cmd;
+	int result;
+	char res_msg[BUF_SIZE];
+}ADMIN_RES_PACKET;
 #endif
 
 extern ITEM items[MAX_ITEM];

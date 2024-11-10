@@ -3,11 +3,15 @@
 #include "cafe.h"
 
 ITEM items[MAX_ITEM];
-int total_item_cnt;
-int coffee_cnt;
-int tea_cnt;
-int juice_cnt;
-int brunch_cnt;
+
+//혹시 모르니까 최초실행 시 0으로 초기화
+int total_item_cnt = 0;
+int coffee_cnt = 0;
+int tea_cnt = 0;
+int juice_cnt = 0;
+int brunch_cnt = 0;
+
+void reset_cnt();
 
 void restore_menu()
 {
@@ -15,6 +19,10 @@ void restore_menu()
 	FILE *tea_fp = fopen("item/tea.txt", "r");
 	FILE *juice_fp = fopen("item/juice.txt", "r");
 	FILE *brunch_fp = fopen("item/brunch.txt", "r");
+
+	//호출 때 마다 reset하지 않으면 cnt가 계속 커져서 막 두번 씩 출력되더라고요. 그래서 호출할 떄마다 cnt들을 초기화 합니다.
+	reset_cnt();
+
 	if (!coffee_fp || !tea_fp || !juice_fp || !brunch_fp)
 	{
 		fprintf(stderr, "menu file open error\n");
@@ -66,4 +74,12 @@ void error_handling(char *msg)
 {
 	puts(msg);
 	exit(1);
+}
+
+void reset_cnt(){
+	total_item_cnt = 0;
+	coffee_cnt = 0;
+	tea_cnt = 0;
+	juice_cnt = 0;
+	brunch_cnt = 0;
 }
