@@ -24,10 +24,13 @@ void *handle_admin(void *args);
 void remove_clnt(int clnt_sock);
 
 void synchronize(int what_category);
+void add_item_to_res_packet(ADMIN_RES_PACKET*);
 
 
 int admin_add_item(ITEM);
-int admin_show_item(int);
+int admin_show_item(ADMIN_RES_PACKET*);
+int admin_update_item(ITEM);
+int admin_delete_item(ITEM);
 
 int main(int argc, char *argv[])
 {
@@ -132,20 +135,33 @@ void *handle_admin(void *arg)
 			res_packet.result = admin_add_item(req_packet.item);
 			break;
 		case SHOW_ITEM:
-			res_packet.result = admin_show_item(req_packet.item.category);
+			res_packet.result = admin_show_item(&res_packet);
 			break;
 		case UPDATE_ITEM:
+			res_packet.result = admin_update_item(req_packet.item);
 			break;
 		case DELETE_ITEM:
+			res_packet.result = admin_delete_item(req_packet.item);
 			break;
 		
+		case ADMIN_QUIT:
+			remove_clnt(admin_sock); return NULL;
 		default:
 			break;
 		}
 
+		// 어드민과 서버 카운트, 아이템 배열 동기화를 위한 전달
+		// 모든 기능에서 items를 수정하든 뭘하든 이 과정을 통해 동기화 됩니다.
+		add_item_to_res_packet(&res_packet);
+		res_packet.cnts[0] = total_item_cnt;
+		res_packet.cnts[1] = coffee_cnt;
+		res_packet.cnts[2] = tea_cnt;
+		res_packet.cnts[3] = juice_cnt;
+		res_packet.cnts[4] = brunch_cnt;
+		
 		// 어드민이 요청한 입력이 잘 처리 됐는지, 어떤 요청이 처리됐는지 등을 전해줍니다. 
 		write(admin_sock, &res_packet, sizeof(ADMIN_RES_PACKET));
-		printf("Accomplished\n");
+		printf("Accomplished. cmd = %d, result = %d\n", res_packet.cmd, res_packet.result);
 	}
 }
 
@@ -183,11 +199,11 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 
 
 
-// 어드민 함수들 정의
+// --------------------------------- 어드민 함수들 정의 ---------------------------------------
+// 서버의 어드민 함수는 공통적으로 server의 items 배열을 수정하고, 이 성공 여부를 반환합니다.
 
 // 메뉴 추가에 성공하면 1, 아니면 0를 반환합니다.
 int admin_add_item(ITEM item){
-
 
 	// 아이템의 카테고리에 맞춰 카테고리 메뉴 수와 전체 수를 더하고, server의 items 배열에 추가한 메뉴를 add 합니다.
 	// 아이템에 따라 여는 파일의 이름도 다릅니다.
@@ -218,25 +234,62 @@ int admin_add_item(ITEM item){
 	}
 
 	// 추가한 메뉴가 있는 파일은 내용을 모두 지우고 서버의 정보로 동기화합니다.
-	synchronize(item.category);
+	//synchronize(item.category);	<-- 로직 변경으로 불필요
 
 	/* 무조건 필요한 과정은 아니긴하다만, 파일의 메뉴 순서로 ITEM 배열을 
 	다시 읽어옵니다. 이걸 하는 이유는, 지금 ITEM 배열의 끝에 추가한 아이템이 있잖아요? 그걸 같은 카테고리 애들이랑
 	순서를 맞춰서 저장하고 싶은게 다입니다.*/
-	restore_menu(); // cafe.c 에 정의돼있음
+	//restore_menu(); // cafe.c 에 정의돼있음 --> synchronize 하지 않아서 불필요. 오히려 하면 안됩니다.
 
 	// 성공적으로 함수 수행!
 	return 1;
 
 }
 
-// 사실 show 명령은 굳이 서버와 파일을 동기화할 필요가 없긴한데, 안정성을 위해서 한 번 동기화 하고 합니다.
-// 중요한 건 저희가 보여달라고 한 카테고리 파일만 동기화 합니다. 전체를 하는 것이 아니에요
-int admin_show_item(int category){
-	synchronize(category);
-	// 파일에 업로드한 후 서버의 items 배열을 재정렬합니다. 그냥 보기 예쁘려고요.
-	restore_menu();
+// show_item을 하기 위한 함수
+int admin_show_item(ADMIN_RES_PACKET * res_packet){
+	
+	// for(int i = 0 ; i < total_item_cnt ; i++){
+	// 	res_packet->items[i] = items[i];
+	// }
+
+	//add_item_to_res_packet 함수로 기능 이전. 사실상 구색 갖추기용 함수입니다. 
+	
 	return 1;
+}
+
+// 업데이트를 하기 위한 함수
+int admin_update_item(ITEM item){
+	int modi_idx;
+	modi_idx  = find_item_idx_by_category_and_key(item.category,item.key);
+	
+	if(item.price == -1){
+		items[modi_idx].stock = item.stock;
+	}
+	else if(item.stock == -1){
+		items[modi_idx].price = item.price;
+	}
+	return 1;
+}
+
+// delete 하기 위한 함수
+int admin_delete_item(ITEM item){
+	int dele_idx;
+	dele_idx = find_item_idx_by_category_and_key(item.category,item.key);
+
+	// 갑자기 왜 카테고리를 -1로 설정하냐고 하실 수 있는데, 이렇게 설정하면 그 어떤 카테고리와도 매치되지 않으니
+	// 없는거나 마찬가지인 효과를 가집니다. 또한 서버가 파일을 동기화할 때도 -1 카테고리 따위는 없으니 파일에 입력되지도 않겠죠.
+	// 즉 카테고리가 -1로 설정된 요소들은 동기화 후 restore_menu() 실행 시 없어질 휴지통에 버려진 메뉴라고 보시면 됩니다.
+	items[dele_idx].category = -1;
+	return 1;
+}
+
+// 현재 서버의 items를 res_packet에 넘겨줍니다.
+void add_item_to_res_packet(ADMIN_RES_PACKET * res_packet){
+	
+	for(int i = 0 ; i < total_item_cnt ; i++){
+		res_packet->items[i] = items[i];
+	}
 }
 
 // 서버의 아이템 정보 --> 파일에 동기화 시키는 매우 중요한 합수입니다.

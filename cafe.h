@@ -76,6 +76,11 @@ typedef struct ADMIN_RES_PACKET{
 	int cmd;
 	int result;
 	char res_msg[BUF_SIZE];
+	// 생각해보니 서버랑 어드민이 동기화 되려면 cnt 값들도 다시 다 줘야해요
+	// 그래서 cnts = {total_cnt, coffee_cnt, tea_cnt, juice_cnt, brunch_cnt} 로 선언해서 넘겨줄겁니다
+	int cnts[CATEGORY_SIZE + 1];
+	// 얘도 어드민과 아이템 배열 동기화 해주기위해 해주는겁니다.
+	ITEM items[MAX_ITEM];
 }ADMIN_RES_PACKET;
 #endif
 
