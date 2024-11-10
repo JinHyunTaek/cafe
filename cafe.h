@@ -1,7 +1,7 @@
 #ifndef CAFE_H
 #define	CAFE_H
 #define BUF_SIZE 2048
-#define MAX_ITEM 10000
+#define MAX_ITEM 100
 #define MENU_NAME_SIZE 20
 #define PWD_SIZE 10
 

@@ -53,10 +53,10 @@ void handle_admin(int sock){
 	int cmd;
 	ADMIN_REQ_PACKET req_packet;
 	ADMIN_RES_PACKET res_packet;
+	memset(&req_packet,0,sizeof(ADMIN_REQ_PACKET));
+	memset(&res_packet,0,sizeof(ADMIN_RES_PACKET));
 	
 	while(1){
-		memset(&req_packet,0,sizeof(ADMIN_REQ_PACKET));
-		memset(&res_packet,0,sizeof(ADMIN_RES_PACKET));
 
 		print_welcome_msg();
 		scanf("%d",&req_packet.cmd);
@@ -89,7 +89,9 @@ void handle_admin(int sock){
 		//요청에 따라 만들어진 패킷을 전송
 		write(sock,&req_packet, sizeof(ADMIN_REQ_PACKET));
 		//서버 응답까지 대기
-		read(sock,&res_packet, sizeof(ADMIN_RES_PACKET));
+		int read_size;
+		(read_size = read(sock,&res_packet, sizeof(ADMIN_RES_PACKET)));
+		printf("read_size = %d, admin_res_packet_size = %d\n",read_size,sizeof(ADMIN_RES_PACKET));
 
 		// 먼저 받아온 items 와 cnts를 동기화 시킵니다.
 		synchronize_server( res_packet );
