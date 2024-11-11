@@ -61,7 +61,9 @@ void handle_admin(int sock){
 	memset(&res_packet,0,sizeof(ADMIN_RES_PACKET));
 	
 	while(1){
-		system("clear");
+		printf("\033[3J");   // 스크롤 백 버퍼 지우기
+    	printf("\033[2J");   // 화면 지우기
+    	printf("\033[H");    // 커서를 좌상단으로 이동
 		print_welcome_msg();
 		scanf("%d",&req_packet.cmd);
 		switch(req_packet.cmd){
