@@ -91,7 +91,7 @@ void handle_admin(int sock){
 		//서버 응답까지 대기
 		int read_size;
 		(read_size = read(sock,&res_packet, sizeof(ADMIN_RES_PACKET)));
-		printf("read_size = %d, admin_res_packet_size = %d\n",read_size,sizeof(ADMIN_RES_PACKET));
+		printf("read_size = %d, admin_res_packet_size = %ld\n",read_size,sizeof(ADMIN_RES_PACKET));
 
 		// 먼저 받아온 items 와 cnts를 동기화 시킵니다.
 		synchronize_server( res_packet );
