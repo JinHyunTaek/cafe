@@ -16,6 +16,7 @@ int waiting_clnt;
 
 pthread_mutex_t mutex; // note that all (multi) threads are sharing this mutex variable
 
+RECENT_MENU make_recent_menu();
 void make_menu(int item_category, int item_key, char *res_msg, int *result);
 void backup();
 void error_handling(char *msg);
@@ -24,11 +25,11 @@ void *handle_admin(void *args);
 void remove_clnt(int clnt_sock);
 
 void synchronize(int what_category);
-void add_item_to_res_packet(ADMIN_RES_PACKET*);
-
+void add_item_to_res_packet(ADMIN_RES_PACKET *);
+int get_item_size_per_category(int category);
 
 int admin_add_item(ITEM);
-int admin_show_item(ADMIN_RES_PACKET*);
+int admin_show_item(ADMIN_RES_PACKET *);
 int admin_update_item(ITEM);
 int admin_delete_item(ITEM);
 
@@ -73,13 +74,13 @@ int main(int argc, char *argv[])
 		// 쓰레드를 만들어 쓰레드 내에서 작업
 		if (is_admin == ADMIN)
 			pthread_create(&t_id, NULL, handle_admin, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
-		else if(is_admin == CLIENT)
+		else if (is_admin == CLIENT)
 			pthread_create(&t_id, NULL, handle_clnt, (void *)&clnt_sock); // create thread per client, handle handle_clnt func
 		else
 			error_handling("who are you?");
 		pthread_detach(t_id);
 	}
-	// 종료시 쓰레드를 모두 닫고 서버 소켓도 닫음
+	// 종료시 delete mutex, 서버 소켓도 닫음
 	pthread_mutex_destroy(&mutex);
 	close(serv_sock);
 }
@@ -87,14 +88,21 @@ int main(int argc, char *argv[])
 // 소비자 전용 핸들러
 void *handle_clnt(void *arg)
 {
+	char dummy = 0;
 	int clnt_sock = *(int *)arg;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
+	RECENT_MENU recent_menu;
 	while (1)
 	{
-		// 요청 패킷과 반응 패킷을 선언
 		memset(&req_packet, 0, sizeof(REQ_PACKET));
 		memset(&res_packet, 0, sizeof(RES_PACKET));
+		if (read(clnt_sock, &dummy, sizeof(dummy)) < sizeof(dummy))
+		{
+			error_handling("read()");
+		}
+		RECENT_MENU recent_menu = make_recent_menu();
+		write(clnt_sock, &recent_menu, sizeof(RECENT_MENU));
 		// 클라이언트 소켓의 요청을 패킷에 저장받아 처리
 		read(clnt_sock, &req_packet, sizeof(REQ_PACKET)); // blocked until write request is arrived by client
 		// 요청 패킷의 cmd 값 ( 클라이언트가 입력한 명령어 ) 에 따라 아래 내용을 수행
@@ -106,6 +114,7 @@ void *handle_clnt(void *arg)
 		case ORDER: // 클라이언트가 주문 cmd 를 실행
 			// 요청 패킷의 아이템 카테고리와 아이템 번호를 input으로 받아 반응 패킷의 msg를 저장 ( 메뉴 준비됐다는 메세지 )
 			make_menu(req_packet.item_category, req_packet.item_key, res_packet.res_msg, &(res_packet.result));
+			memcpy(res_packet.items, items, sizeof(ITEM) * MAX_ITEM);
 			// 클라이언트 소켓으로 반응 패킷 전달 ( 메뉴가 준비 다 되었다는 메세지 )
 			write(clnt_sock, &res_packet, sizeof(RES_PACKET));
 		}
@@ -125,13 +134,13 @@ void *handle_admin(void *arg)
 		memset(&res_packet, 0, sizeof(ADMIN_RES_PACKET));
 		// 어드민 소켓의 요청을 패킷에 저장받아 처리
 		read(admin_sock, &req_packet, sizeof(ADMIN_REQ_PACKET)); // blocked until write request is arrived by client
-		
-		res_packet.cmd = req_packet.cmd;
 
+		res_packet.cmd = req_packet.cmd;
+		pthread_mutex_lock(&mutex); // most(ADD, UPDATE, DELETE) operations admin does need to be locked for synchronization
 		// 어드민이 입력한 cmd 값에 따라 해당 기능들을 수행합니다.
 		switch (req_packet.cmd)
 		{
-		case ADD_ITEM :
+		case ADD_ITEM:
 			res_packet.result = admin_add_item(req_packet.item);
 			break;
 		case SHOW_ITEM:
@@ -143,9 +152,9 @@ void *handle_admin(void *arg)
 		case DELETE_ITEM:
 			res_packet.result = admin_delete_item(req_packet.item);
 			break;
-		
 		case ADMIN_QUIT:
-			remove_clnt(admin_sock); return NULL;
+			remove_clnt(admin_sock);
+			return NULL;
 		default:
 			break;
 		}
@@ -153,13 +162,9 @@ void *handle_admin(void *arg)
 		// 어드민과 서버 카운트, 아이템 배열 동기화를 위한 전달
 		// 모든 기능에서 items를 수정하든 뭘하든 이 과정을 통해 동기화 됩니다.
 		add_item_to_res_packet(&res_packet);
-		res_packet.cnts[0] = total_item_cnt;
-		res_packet.cnts[1] = coffee_cnt;
-		res_packet.cnts[2] = tea_cnt;
-		res_packet.cnts[3] = juice_cnt;
-		res_packet.cnts[4] = brunch_cnt;
-		
-		// 어드민이 요청한 입력이 잘 처리 됐는지, 어떤 요청이 처리됐는지 등을 전해줍니다. 
+
+		pthread_mutex_unlock(&mutex); // unlock when operation end
+		// 어드민이 요청한 입력이 잘 처리 됐는지, 어떤 요청이 처리됐는지 등을 전해줍니다.
 		write(admin_sock, &res_packet, sizeof(ADMIN_RES_PACKET));
 		printf("Accomplished. cmd = %d, result = %d\n", res_packet.cmd, res_packet.result);
 	}
@@ -197,157 +202,274 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 	*result = READY;
 }
 
-
-
 // --------------------------------- 어드민 함수들 정의 ---------------------------------------
 // 서버의 어드민 함수는 공통적으로 server의 items 배열을 수정하고, 이 성공 여부를 반환합니다.
 
 // 메뉴 추가에 성공하면 1, 아니면 0를 반환합니다.
-int admin_add_item(ITEM item){
+int admin_add_item(ITEM item)
+{
 
 	// 아이템의 카테고리에 맞춰 카테고리 메뉴 수와 전체 수를 더하고, server의 items 배열에 추가한 메뉴를 add 합니다.
 	// 아이템에 따라 여는 파일의 이름도 다릅니다.
-	switch(item.category){
-		case COFFEE:
-			item.key = ++coffee_cnt;
-			total_item_cnt ++;
-			items[total_item_cnt-1] = item;
-			break;
-		case TEA:
-			item.key = ++tea_cnt;
-			total_item_cnt ++;
-			items[total_item_cnt-1] = item;
-			break;
-		case JUICE:
-			item.key = ++juice_cnt;
-			total_item_cnt ++;
-			items[total_item_cnt-1] = item;
-			break;
-		case BRUNCH:
-			item.key = ++brunch_cnt;
-			total_item_cnt ++;
-			items[total_item_cnt-1] = item;
-			break;
-		default:
-			puts("Guess you typed wrong category?");
-			return 0;
+	switch (item.category)
+	{
+	case COFFEE:
+		item.key = ++coffee_cnt;
+		total_item_cnt++;
+		items[total_item_cnt - 1] = item;
+		break;
+	case TEA:
+		item.key = ++tea_cnt;
+		total_item_cnt++;
+		items[total_item_cnt - 1] = item;
+		break;
+	case JUICE:
+		item.key = ++juice_cnt;
+		total_item_cnt++;
+		items[total_item_cnt - 1] = item;
+		break;
+	case BRUNCH:
+		item.key = ++brunch_cnt;
+		total_item_cnt++;
+		items[total_item_cnt - 1] = item;
+		break;
+	default:
+		puts("Guess you typed wrong category?");
+		return 0;
 	}
 
 	// 추가한 메뉴가 있는 파일은 내용을 모두 지우고 서버의 정보로 동기화합니다.
-	//synchronize(item.category);	<-- 로직 변경으로 불필요
+	// synchronize(item.category);	<-- 로직 변경으로 불필요
 
-	/* 무조건 필요한 과정은 아니긴하다만, 파일의 메뉴 순서로 ITEM 배열을 
+	/* 무조건 필요한 과정은 아니긴하다만, 파일의 메뉴 순서로 ITEM 배열을
 	다시 읽어옵니다. 이걸 하는 이유는, 지금 ITEM 배열의 끝에 추가한 아이템이 있잖아요? 그걸 같은 카테고리 애들이랑
 	순서를 맞춰서 저장하고 싶은게 다입니다.*/
-	//restore_menu(); // cafe.c 에 정의돼있음 --> synchronize 하지 않아서 불필요. 오히려 하면 안됩니다.
+	// restore_menu(); // cafe.c 에 정의돼있음 --> synchronize 하지 않아서 불필요. 오히려 하면 안됩니다.
 
 	// 성공적으로 함수 수행!
 	return 1;
-
 }
 
 // show_item을 하기 위한 함수
-int admin_show_item(ADMIN_RES_PACKET * res_packet){
-	
+int admin_show_item(ADMIN_RES_PACKET *res_packet)
+{
+
 	// for(int i = 0 ; i < total_item_cnt ; i++){
 	// 	res_packet->items[i] = items[i];
 	// }
 
-	//add_item_to_res_packet 함수로 기능 이전. 사실상 구색 갖추기용 함수입니다. 
-	
+	// add_item_to_res_packet 함수로 기능 이전. 사실상 구색 갖추기용 함수입니다.
+
 	return 1;
 }
 
 // 업데이트를 하기 위한 함수
-int admin_update_item(ITEM item){
+int admin_update_item(ITEM item)
+{
 	int modi_idx;
-	modi_idx  = find_item_idx_by_category_and_key(item.category,item.key);
-	
-	if(item.price == -1){
+	modi_idx = find_item_idx_by_category_and_key(item.category, item.key);
+
+	if (item.price == -1)
+	{
 		items[modi_idx].stock = item.stock;
 	}
-	else if(item.stock == -1){
+	else if (item.stock == -1)
+	{
 		items[modi_idx].price = item.price;
 	}
 	return 1;
 }
 
 // delete 하기 위한 함수
-int admin_delete_item(ITEM item){
-	int dele_idx;
-	dele_idx = find_item_idx_by_category_and_key(item.category,item.key);
-
-	// 갑자기 왜 카테고리를 -1로 설정하냐고 하실 수 있는데, 이렇게 설정하면 그 어떤 카테고리와도 매치되지 않으니
-	// 없는거나 마찬가지인 효과를 가집니다. 또한 서버가 파일을 동기화할 때도 -1 카테고리 따위는 없으니 파일에 입력되지도 않겠죠.
-	// 즉 카테고리가 -1로 설정된 요소들은 동기화 후 restore_menu() 실행 시 없어질 휴지통에 버려진 메뉴라고 보시면 됩니다.
-	items[dele_idx].category = -1;
+int admin_delete_item(ITEM item)
+{
+	int dele_idx, cate_size, curr_idx;
+	dele_idx = find_item_idx_by_category_and_key(item.category, item.key);
+	cate_size = get_item_size_per_category(item.category);
+	for (curr_idx = dele_idx; curr_idx < cate_size - 1; curr_idx++)
+	{
+		items[curr_idx] = items[curr_idx + 1]; // <<< shifting
+		items[curr_idx].key-=1;
+	}
+	for (;curr_idx < total_item_cnt - 1; curr_idx++)
+	{
+		items[curr_idx] = items[curr_idx + 1]; // <<< shifting
+	}
+	switch (item.category)
+	{
+	case COFFEE:
+		coffee_cnt--;
+		break;
+	case TEA:
+		tea_cnt--;
+		break;
+	case JUICE:
+		juice_cnt--;
+		break;
+	case BRUNCH:
+		brunch_cnt--;
+	}
+	total_item_cnt--;
 	return 1;
 }
 
 // 현재 서버의 items를 res_packet에 넘겨줍니다.
-void add_item_to_res_packet(ADMIN_RES_PACKET * res_packet){
-	
-	for(int i = 0 ; i < total_item_cnt ; i++){
+void add_item_to_res_packet(ADMIN_RES_PACKET *res_packet)
+{
+	for (int i = 0; i < total_item_cnt; i++)
+	{
 		res_packet->items[i] = items[i];
 	}
+	res_packet->cnts[0] = total_item_cnt;
+	res_packet->cnts[1] = coffee_cnt;
+	res_packet->cnts[2] = tea_cnt;
+	res_packet->cnts[3] = juice_cnt;
+	res_packet->cnts[4] = brunch_cnt;
+}
+
+int get_item_size_per_category(int category)
+{
+	switch (category)
+	{
+	case COFFEE:
+		return coffee_cnt;
+	case TEA:
+		return tea_cnt;
+	case JUICE:
+		return juice_cnt;
+	case BRUNCH:
+		return brunch_cnt;
+	}
+	error_handling("wrong category");
 }
 
 // 서버의 아이템 정보 --> 파일에 동기화 시키는 매우 중요한 합수입니다.
-void synchronize(int what_category){
+void synchronize(int what_category)
+{
 	FILE *fp = NULL;
 
-	if( (what_category == COFFEE) || (what_category == ALL_CATEGORY) ){
+	if ((what_category == COFFEE) || (what_category == ALL_CATEGORY))
+	{
 		// coffee 카테고리 동기화
-		fp = fopen("./item/coffee.txt","wt");
-		for(int i = 0 ; i < total_item_cnt ; i++){
+		fp = fopen("./item/coffee.txt", "wt");
+		for (int i = 0; i < total_item_cnt; i++)
+		{
 			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
-			if(items[i].category == COFFEE){
-				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			if (items[i].category == COFFEE)
+			{
+				fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 			}
 		}
 		fclose(fp);
 	}
 
-	if ( (what_category == TEA) || (what_category == ALL_CATEGORY) ){
-	// tea 카테고리 동기화
-		fp = fopen("./item/tea.txt","wt");
-			for(int i = 0 ; i < total_item_cnt ; i++){
+	if ((what_category == TEA) || (what_category == ALL_CATEGORY))
+	{
+		// tea 카테고리 동기화
+		fp = fopen("./item/tea.txt", "wt");
+		for (int i = 0; i < total_item_cnt; i++)
+		{
 			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
-			if(items[i].category == TEA){
-				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			if (items[i].category == TEA)
+			{
+				fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 			}
 		}
 		fclose(fp);
 	}
 
-
-	if( (what_category == JUICE) || (what_category == ALL_CATEGORY) ){
+	if ((what_category == JUICE) || (what_category == ALL_CATEGORY))
+	{
 		// juice 카테고리 동기화
-		fp = fopen("./item/tea.txt","wt");
-			for(int i = 0 ; i < total_item_cnt ; i++){
+		fp = fopen("./item/tea.txt", "wt");
+		for (int i = 0; i < total_item_cnt; i++)
+		{
 			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
-			if(items[i].category == JUICE){
-				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			if (items[i].category == JUICE)
+			{
+				fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 			}
 		}
 		fclose(fp);
 	}
 
-	if ( (what_category == BRUNCH) || (what_category == ALL_CATEGORY) ){
+	if ((what_category == BRUNCH) || (what_category == ALL_CATEGORY))
+	{
 		// brunch 카테고리 동기화
-		fp = fopen("./item/brunch.txt","wt");
-			for(int i = 0 ; i < total_item_cnt ; i++){
+		fp = fopen("./item/brunch.txt", "wt");
+		for (int i = 0; i < total_item_cnt; i++)
+		{
 			// 우리가 추가한 아이템의 카테고리와 같은 ITEM 구조체만 해당 카테고리 파일에 씁니다.
-			if(items[i].category == BRUNCH){
-				fprintf(fp,"%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+			if (items[i].category == BRUNCH)
+			{
+				fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 			}
 		}
 		fclose(fp);
 	}
-	
-	
 }
 
+void restore_menu()
+{
+	memset(&items, 0, sizeof(ITEM) * MAX_ITEM);
+	FILE *coffee_fp = fopen("item/coffee.txt", "r");
+	FILE *tea_fp = fopen("item/tea.txt", "r");
+	FILE *juice_fp = fopen("item/juice.txt", "r");
+	FILE *brunch_fp = fopen("item/brunch.txt", "r");
+
+	// 호출 때 마다 reset하지 않으면 cnt가 계속 커져서 막 두번 씩 출력되더라고요. 그래서 호출할 떄마다 cnt들을 초기화 합니다.
+	//  reset_cnt();
+
+	if (!coffee_fp || !tea_fp || !juice_fp || !brunch_fp)
+	{
+		fprintf(stderr, "menu file open error\n");
+		exit(1);
+	}
+	while (!feof(coffee_fp))
+	{
+		fscanf(coffee_fp, "%s %d %d %d\n", items[total_item_cnt].name, &items[total_item_cnt].key, &items[total_item_cnt].stock, &items[total_item_cnt].price);
+		items[total_item_cnt].category = COFFEE;
+		coffee_cnt++;
+		total_item_cnt++;
+	}
+	while (!feof(tea_fp))
+	{
+		fscanf(tea_fp, "%s %d %d %d\n", items[total_item_cnt].name, &items[total_item_cnt].key, &items[total_item_cnt].stock, &items[total_item_cnt].price);
+		items[total_item_cnt].category = TEA;
+		tea_cnt++;
+		total_item_cnt++;
+	}
+	while (!feof(juice_fp))
+	{
+		fscanf(juice_fp, "%s %d %d %d\n", items[total_item_cnt].name, &items[total_item_cnt].key, &items[total_item_cnt].stock, &items[total_item_cnt].price);
+		items[total_item_cnt].category = JUICE;
+		juice_cnt++;
+		total_item_cnt++;
+	}
+	while (!feof(brunch_fp))
+	{
+		fscanf(brunch_fp, "%s %d %d %d\n", items[total_item_cnt].name, &items[total_item_cnt].key, &items[total_item_cnt].stock, &items[total_item_cnt].price);
+		items[total_item_cnt].category = BRUNCH;
+		brunch_cnt++;
+		total_item_cnt++;
+	}
+	fclose(coffee_fp);
+	fclose(tea_fp);
+	fclose(juice_fp);
+	fclose(brunch_fp);
+}
+
+RECENT_MENU make_recent_menu()
+{
+	RECENT_MENU recent_menu;
+	memcpy(recent_menu.items, items, sizeof(ITEM) * MAX_ITEM);
+	recent_menu.cnts[0] = total_item_cnt;
+	recent_menu.cnts[COFFEE] = coffee_cnt;
+	recent_menu.cnts[TEA] = tea_cnt;
+	recent_menu.cnts[JUICE] = juice_cnt;
+	recent_menu.cnts[BRUNCH] = brunch_cnt;
+	return recent_menu;
+}
 
 // 클라이언트 접속해제
 void remove_clnt(int clnt_sock)

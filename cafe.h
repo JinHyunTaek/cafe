@@ -1,5 +1,5 @@
 #ifndef CAFE_H
-#define	CAFE_H
+#define CAFE_H
 #define BUF_SIZE 2048
 #define MAX_ITEM 100
 #define MENU_NAME_SIZE 20
@@ -27,7 +27,6 @@
 #define SHOW_CUSTOMER 5
 #define ADMIN_QUIT 6
 
-
 // waiting(sleep) time
 #define W_COFFEE 2
 #define W_TEA 2
@@ -39,40 +38,46 @@
 #define READY 2
 #define OUT_OF_STOCK 3
 
-
-//파일에는 name key stock price 순으로 저장됨
-typedef struct ITEM{
+// 파일에는 name key stock price 순으로 저장됨
+typedef struct ITEM
+{
 	int category;
 	int key; // primary key per item category
 	char name[MENU_NAME_SIZE];
-	int stock; 
-	int price; 
-}ITEM;
+	int stock;
+	int price;
+} ITEM;
 
-// typedef struct USER{
-// 	char name[NAME_SIZE];
-// 	char password[PWD_SIZE];
-// }USER;
+// for client
+typedef struct RECENT_MENU
+{
+	ITEM items[MAX_ITEM];
+	int cnts[CATEGORY_SIZE+1];
+}RECENT_MENU;
 
-typedef struct REQ_PACKET{
+typedef struct REQ_PACKET
+{
 	int cmd;
 	int item_category;
 	int item_key;
-}REQ_PACKET;
+} REQ_PACKET;
 
-typedef struct RES_PACKET{
+typedef struct RES_PACKET
+{
 	int cmd;
 	int result;
 	char res_msg[BUF_SIZE];
-}RES_PACKET;
-
+	ITEM items[MAX_ITEM];
+} RES_PACKET;
 
 // 어드민의 패킷은 따로 설정했습니다
-typedef struct ADMIN_REQ_PACKET{
+typedef struct ADMIN_REQ_PACKET
+{
 	int cmd;
 	ITEM item;
-}ADMIN_REQ_PACKET;
-typedef struct ADMIN_RES_PACKET{
+} ADMIN_REQ_PACKET;
+typedef struct ADMIN_RES_PACKET
+{
 	int cmd;
 	int result;
 	char res_msg[BUF_SIZE];
@@ -81,7 +86,7 @@ typedef struct ADMIN_RES_PACKET{
 	int cnts[CATEGORY_SIZE + 1];
 	// 얘도 어드민과 아이템 배열 동기화 해주기위해 해주는겁니다.
 	ITEM items[MAX_ITEM];
-}ADMIN_RES_PACKET;
+} ADMIN_RES_PACKET;
 #endif
 
 extern ITEM items[MAX_ITEM];
@@ -94,4 +99,5 @@ extern int brunch_cnt;
 void restore_menu();
 int find_item_idx_by_category_and_key(int item_category, int item_key);
 void error_handling(char *msg);
-// void restore_user();
+int get_item_size_per_category(int category);
+void initialize_item_info(RECENT_MENU recent_menu);

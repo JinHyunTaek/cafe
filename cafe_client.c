@@ -7,10 +7,9 @@
 #include <netinet/in.h>
 #include "cafe.h"
 
-void handle_customer(int sock);
+void order_service(int sock);
 void print_welcome_msg();
 int print_and_return_menu_by_category(int category);
-void error_handling(char *msg);
 
 int main(int argc, char *argv[])
 {
@@ -32,15 +31,17 @@ int main(int argc, char *argv[])
 	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
 		error_handling("connect() error");
 	int me = CLIENT;
-	write(sock,&me,sizeof(me));
-	restore_menu();
-	handle_customer(sock);
+	write(sock, &me, sizeof(me));
+
+	order_service(sock);
 	close(sock);
 }
 
-void handle_customer(int sock)
+void order_service(int sock)
 {
+	char dummy = 0; // just exists write needs some data
 	int my_money = 0;
+	RECENT_MENU recent_menu;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
 	while (1)
@@ -59,18 +60,25 @@ void handle_customer(int sock)
 			scanf("%d", &req_packet.item_category);
 			if (req_packet.item_category < 1 || req_packet.item_category > CATEGORY_SIZE)
 				continue;
-			while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category)) == -1);
-			int item_idx = find_item_idx_by_category_and_key(req_packet.item_category,req_packet.item_key);
+			write(sock, &dummy, sizeof(dummy));
+			if (read(sock, &recent_menu, sizeof(RECENT_MENU)) < sizeof(RECENT_MENU))
+				error_handling("read()");
+			initialize_item_info(recent_menu);
+			while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category)) == -1)
+				;
+			int item_idx = find_item_idx_by_category_and_key(req_packet.item_category, req_packet.item_key);
 			// 현재 남아 있는 잔액이 선택한 상품의 가격보다 낮은 경우 잔액 충전
-			while(my_money < items[item_idx].price){
+			while (my_money < items[item_idx].price)
+			{
 				int temp;
-				printf("Recharge your balance (Item price : %d, Current balance : %d): ",items[item_idx].price, my_money);
-				scanf("%d",&temp);
-				my_money+=temp;
+				printf("Recharge your balance (Item price : %d, Current balance : %d): ", items[item_idx].price, my_money);
+				scanf("%d", &temp);
+				my_money += temp;
 			}
 			write(sock, &req_packet, sizeof(REQ_PACKET));
 			read(sock, &res_packet, sizeof(RES_PACKET));
-			if(res_packet.result != OUT_OF_STOCK){ //주문이 성공적으로 된 경우, 주문한 상품의 가격만큼 지불
+			if (res_packet.result != OUT_OF_STOCK)
+			{ // 주문이 성공적으로 된 경우, 주문한 상품의 가격만큼 지불
 				my_money -= items[item_idx].price;
 			}
 			puts(res_packet.res_msg);

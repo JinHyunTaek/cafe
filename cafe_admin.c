@@ -47,7 +47,6 @@ int main(int argc, char*argv[]){
 	// 내가 어드민이라는 신호를 소켓에 적용
 	int me = ADMIN;
 	write(sock,&me,sizeof(me));
-	restore_menu();
 	handle_admin(sock);
 	close(sock);
 }
