@@ -15,6 +15,7 @@ void print_welcome_msg();
 void print_nav();
 void print_category();
 void print_menu_list(ADMIN_REQ_PACKET);
+void return_main();
 void display_single_item(ITEM item);
 
 void synchronize_server(ADMIN_RES_PACKET );
@@ -59,7 +60,9 @@ void handle_admin(int sock){
 	memset(&res_packet,0,sizeof(ADMIN_RES_PACKET));
 	
 	while(1){
-
+		printf("\033[3J");   // 스크롤 백 버퍼 지우기
+    	printf("\033[2J");   // 화면 지우기
+    	printf("\033[H");    // 커서를 좌상단으로 이동
 		print_welcome_msg();
 		scanf("%d",&req_packet.cmd);
 		switch(req_packet.cmd){
@@ -82,6 +85,7 @@ void handle_admin(int sock){
 
 			case ADMIN_QUIT:
 				write(sock,&req_packet, sizeof(ADMIN_REQ_PACKET));
+				system("clear");
 				return;
 			default:
 				puts("Something didnt go well in cmd...");
@@ -104,14 +108,13 @@ void handle_admin(int sock){
 				case ADD_ITEM:
 					print_nav();
 					print_menu_list(req_packet);
-					printf("\nPRESS Enter");
-					getchar();getchar();
+					return_main();
 					break;
 				case SHOW_ITEM:
-					int category = -1;
 					print_nav();
 					print_menu_list(req_packet);
 					puts("");
+					return_main();
 					break;
 				case UPDATE_ITEM:
 					//업데이트 된 메뉴만 보여줍시다. res_packet에 우리가 넣은 카테고리와 키가 없는 이유로 그냥 req_packet을 사용합니다.
@@ -119,12 +122,12 @@ void handle_admin(int sock){
 					print_nav();
 					display_single_item(items[idx]);
 					puts("");
+					return_main();
 					break;
 				case DELETE_ITEM:
 					print_nav();
 					print_menu_list(req_packet);
-					printf("\nPRESS Enter");
-					getchar();getchar();	// 앞에서 \n 받고 enter 로 넘어감
+					return_main();
 					break;
 				default:
 					
@@ -169,6 +172,12 @@ void print_menu_list(ADMIN_REQ_PACKET req_packet){
 			display_single_item(items[i]);
 		}
 	}
+}
+
+void return_main(){
+	printf("\nPRESS Enter to Main");
+	getchar();
+	getchar();
 }
 
 // 한 ITEM 구조체를 [	카테고리	키	이름	수량	가격	] 형식으로 출력합니다. 각 속성 사이 공백은 탭입니다.
