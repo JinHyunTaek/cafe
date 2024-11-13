@@ -55,12 +55,6 @@ int main(int argc, char*argv[]){
 	close(sock);
 }
 
-// signal handler: SIGINT 발생 시 경고 문구
-void backup_warning(int signum) {
-	printf("\n[WARNING] SIGINT signal: Backup signal at server shutdown.\n");
-	printf("\t  No backup will be performed in this file.\n");
-}
-
 void handle_admin(int sock){
 	int cmd;
 	ADMIN_REQ_PACKET req_packet;

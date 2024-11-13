@@ -34,3 +34,9 @@ int find_item_idx_by_category_and_key(int item_category, int item_key)
 			return i;
 	error_handling("could not find menu");
 }
+
+// signal handler: server 외에서 SIGINT 발생 시 경고 문구
+void backup_warning(int signum) {
+	printf("\n[WARNING] SIGINT signal: Backup signal at server shutdown.\n");
+	printf("\t  No backup will be performed in this file.\n");
+}
