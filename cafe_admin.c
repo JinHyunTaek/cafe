@@ -6,8 +6,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
 #include "cafe.h"
 
+void backup_warning(int signum); // signal handler: SIGINT 발생 시 경고 문구
 void handle_admin(int sock);
 void error_handling(char *msg);
 
@@ -34,6 +36,7 @@ int main(int argc, char*argv[]){
         printf("Usage : %s <IP> <port>\n", argv[0]);
         exit(1);
     }
+	signal(SIGINT, backup_warning); // signal handler 등록
     sock = socket(PF_INET, SOCK_STREAM, 0);
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -50,6 +53,12 @@ int main(int argc, char*argv[]){
 	write(sock,&me,sizeof(me));
 	handle_admin(sock);
 	close(sock);
+}
+
+// signal handler: SIGINT 발생 시 경고 문구
+void backup_warning(int signum) {
+	printf("\n[WARNING] SIGINT signal: Backup signal at server shutdown.\n");
+	printf("\t  No backup will be performed in this file.\n");
 }
 
 void handle_admin(int sock){

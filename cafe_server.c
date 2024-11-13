@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
 #include "cafe.h"
 #define MAX_USER 10000
 #define ADMIN_PWD 1234
@@ -18,7 +19,7 @@ pthread_mutex_t mutex; // note that all (multi) threads are sharing this mutex v
 
 RECENT_MENU make_recent_menu();
 void make_menu(int item_category, int item_key, char *res_msg, int *result);
-void backup();
+void backup(int signum); // signal handler : 종료 시 백업
 void error_handling(char *msg);
 void *handle_clnt(void *arg);
 void *handle_admin(void *args);
@@ -44,6 +45,9 @@ int main(int argc, char *argv[])
 		printf("Usage : %s <port>\n", argv[0]);
 		exit(1);
 	}
+
+	// 백업을 위한 signal handler 등록
+	signal(SIGINT, backup);
 
 	// 서버 소켓 바인딩, 리스닝 작업
 	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -83,6 +87,47 @@ int main(int argc, char *argv[])
 	// 종료시 delete mutex, 서버 소켓도 닫음
 	pthread_mutex_destroy(&mutex);
 	close(serv_sock);
+}
+
+// signal handler : 종료 시 백업
+void backup(int signum) {
+	FILE *coffee_fp = fopen("item/coffee.txt", "wt");
+	FILE *tea_fp = fopen("item/tea.txt", "wt");
+	FILE *juice_fp = fopen("item/juice.txt", "wt");
+	FILE *brunch_fp = fopen("item/brunch.txt", "wt");
+
+	if (!coffee_fp || !tea_fp || !juice_fp || !brunch_fp) {
+		fprintf(stderr, "menu file open error\n");
+		exit(1);
+	}
+
+	for (int i = 0; i < total_item_cnt; i++) {
+		if (items[i].category == COFFEE) {
+			fprintf(coffee_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+		}
+	}
+	for (int i = 0; i < total_item_cnt; i++) {
+		if (items[i].category == TEA) {
+			fprintf(tea_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+		}
+	}
+	for (int i = 0; i < total_item_cnt; i++) {
+		if (items[i].category == JUICE) {
+			fprintf(juice_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+		}
+	}
+	for (int i = 0; i < total_item_cnt; i++) {
+		if (items[i].category == BRUNCH) {
+			fprintf(brunch_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+		}
+	}
+
+	fclose(coffee_fp);
+	fclose(tea_fp);
+	fclose(juice_fp);
+	fclose(brunch_fp);
+
+	exit(0);
 }
 
 // 소비자 전용 핸들러
