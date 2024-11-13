@@ -3,7 +3,8 @@
 #define BUF_SIZE 2048
 #define MAX_ITEM 100
 #define MENU_NAME_SIZE 20
-#define PWD_SIZE 10
+#define PWD_SIZE 20
+#define ADMIN_PWD "password"
 
 #define ADMIN 1
 #define CLIENT 2
@@ -52,8 +53,8 @@ typedef struct ITEM
 typedef struct RECENT_MENU
 {
 	ITEM items[MAX_ITEM];
-	int cnts[CATEGORY_SIZE+1];
-}RECENT_MENU;
+	int cnts[CATEGORY_SIZE + 1];
+} RECENT_MENU;
 
 typedef struct REQ_PACKET
 {
@@ -87,6 +88,17 @@ typedef struct ADMIN_RES_PACKET
 	// 얘도 어드민과 아이템 배열 동기화 해주기위해 해주는겁니다.
 	ITEM items[MAX_ITEM];
 } ADMIN_RES_PACKET;
+
+// admin login을 위한 packet
+typedef struct ADMIN_LOGIN_REQ_PACKET
+{
+	char password[PWD_SIZE];
+} ADMIN_LOGIN_REQ_PACKET;
+typedef struct ADMIN_LOGIN_RES_PACKET
+{
+	int result;
+} ADMIN_LOGIN_RES_PACKET;
+
 #endif
 
 extern ITEM items[MAX_ITEM];

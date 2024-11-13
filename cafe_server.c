@@ -9,7 +9,6 @@
 #include <signal.h>
 #include "cafe.h"
 #define MAX_USER 10000
-#define ADMIN_PWD 1234
 
 int clnt_socks[MAX_USER];
 int clnt_cnt; // (connected)
@@ -22,6 +21,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result);
 void backup(int signum); // signal handler : 종료 시 백업
 void error_handling(char *msg);
 void *handle_clnt(void *arg);
+void login(int sock);
 void *handle_admin(void *args);
 void remove_clnt(int clnt_sock);
 
@@ -168,15 +168,41 @@ void *handle_clnt(void *arg)
 	}
 }
 
+void login(int sock)
+{
+	ADMIN_LOGIN_REQ_PACKET log_req_packet;
+	ADMIN_LOGIN_RES_PACKET log_res_packet;
+	while (1)
+	{
+		memset(&log_req_packet, 0, sizeof(ADMIN_LOGIN_REQ_PACKET));
+		memset(&log_res_packet, 0, sizeof(ADMIN_LOGIN_RES_PACKET));
+
+		read(sock, &log_req_packet, sizeof(ADMIN_LOGIN_REQ_PACKET));
+		if (strcmp(log_req_packet.password, ADMIN_PWD) == 0)
+		{
+			log_res_packet.result = 1;
+			write(sock, &log_res_packet, sizeof(ADMIN_LOGIN_RES_PACKET));
+			printf("\nAdmin Login!\n");
+			break;
+		}
+		else
+		{
+			log_res_packet.result = 0;
+			write(sock, &log_res_packet, sizeof(ADMIN_LOGIN_RES_PACKET));
+		}
+	}
+}
+
 // admin 전용 핸들러
 void *handle_admin(void *arg)
 {
 	int admin_sock = *(int *)arg;
 	ADMIN_REQ_PACKET req_packet;
 	ADMIN_RES_PACKET res_packet;
+	login(admin_sock);
+
 	while (1)
-	{
-		// 요청 패킷과 반응 패킷을 선언
+	{ // 요청 패킷과 반응 패킷을 선언
 		memset(&req_packet, 0, sizeof(ADMIN_REQ_PACKET));
 		memset(&res_packet, 0, sizeof(ADMIN_RES_PACKET));
 		// 어드민 소켓의 요청을 패킷에 저장받아 처리
