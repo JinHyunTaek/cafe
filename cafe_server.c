@@ -105,31 +105,23 @@ void backup(int signum)
 
 	for (int i = 0; i < total_item_cnt; i++)
 	{
-		if (items[i].category == COFFEE)
+		FILE *fp;
+		switch (items[i].category)
 		{
-			fprintf(coffee_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+		case COFFEE:
+			fp = coffee_fp;
+			break;
+		case TEA:
+			fp = tea_fp;
+			break;
+		case JUICE:
+			fp = juice_fp;
+			break;
+		case BRUNCH:
+			fp = brunch_fp;
+			break;
 		}
-	}
-	for (int i = 0; i < total_item_cnt; i++)
-	{
-		if (items[i].category == TEA)
-		{
-			fprintf(tea_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
-	}
-	for (int i = 0; i < total_item_cnt; i++)
-	{
-		if (items[i].category == JUICE)
-		{
-			fprintf(juice_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
-	}
-	for (int i = 0; i < total_item_cnt; i++)
-	{
-		if (items[i].category == BRUNCH)
-		{
-			fprintf(brunch_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
+		fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 	}
 
 	fclose(coffee_fp);
