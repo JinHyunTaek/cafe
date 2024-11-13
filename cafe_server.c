@@ -286,15 +286,15 @@ int admin_delete_item(ITEM item)
 	int dele_idx, cate_size, curr_idx;
 	dele_idx = find_item_idx_by_category_and_key(item.category, item.key);
 	cate_size = get_item_size_per_category(item.category);
-	for (curr_idx = dele_idx; curr_idx < cate_size - 1; curr_idx++)
-	{
-		items[curr_idx] = items[curr_idx + 1]; // <<< shifting
-		items[curr_idx].key-=1;
+	
+	// 삭제할 인덱스 번호부터 끝까지 아이템을 하나씩 당기며, 만약 삭제한 아이템과 카테고리가 같다면 키를 1씩 줄입니다.
+	// 뒤에 추가된 아이템은 그 전 아이템보다는 키가 높을 것이니 이렇게 작성했습니다.
+	// 이렇게 하면 아이템을 추가할 때는 따로 shift를 안 해도 됩니다.
+	for(curr_idx = dele_idx ; curr_idx < total_item_cnt - 1 ; curr_idx++){
+		items[curr_idx] = items[curr_idx + 1];
+		if(items[curr_idx].category == item.category) items[curr_idx].key --;
 	}
-	for (;curr_idx < total_item_cnt - 1; curr_idx++)
-	{
-		items[curr_idx] = items[curr_idx + 1]; // <<< shifting
-	}
+
 	switch (item.category)
 	{
 	case COFFEE:
