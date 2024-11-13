@@ -90,36 +90,38 @@ int main(int argc, char *argv[])
 }
 
 // signal handler : 종료 시 백업
-void backup(int signum) {
+void backup(int signum)
+{
 	FILE *coffee_fp = fopen("item/coffee.txt", "wt");
 	FILE *tea_fp = fopen("item/tea.txt", "wt");
 	FILE *juice_fp = fopen("item/juice.txt", "wt");
 	FILE *brunch_fp = fopen("item/brunch.txt", "wt");
 
-	if (!coffee_fp || !tea_fp || !juice_fp || !brunch_fp) {
+	if (!coffee_fp || !tea_fp || !juice_fp || !brunch_fp)
+	{
 		fprintf(stderr, "menu file open error\n");
 		exit(1);
 	}
 
-	for (int i = 0; i < total_item_cnt; i++) {
-		if (items[i].category == COFFEE) {
-			fprintf(coffee_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
+	for (int i = 0; i < total_item_cnt; i++)
+	{
+		int fp;
+		switch (items[i].category)
+		{
+		case COFFEE:
+			fp = coffee_fp;
+			break;
+		case TEA:
+			fp = tea_fp;
+			break;
+		case JUICE:
+			fp = juice_fp;
+			break;
+		case BRUNCH:
+			fp = brunch_fp;
+			break;
 		}
-	}
-	for (int i = 0; i < total_item_cnt; i++) {
-		if (items[i].category == TEA) {
-			fprintf(tea_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
-	}
-	for (int i = 0; i < total_item_cnt; i++) {
-		if (items[i].category == JUICE) {
-			fprintf(juice_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
-	}
-	for (int i = 0; i < total_item_cnt; i++) {
-		if (items[i].category == BRUNCH) {
-			fprintf(brunch_fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
-		}
+		fprintf(fp, "%s %d %d %d\n", items[i].name, items[i].key, items[i].stock, items[i].price);
 	}
 
 	fclose(coffee_fp);
@@ -331,13 +333,15 @@ int admin_delete_item(ITEM item)
 	int dele_idx, cate_size, curr_idx;
 	dele_idx = find_item_idx_by_category_and_key(item.category, item.key);
 	cate_size = get_item_size_per_category(item.category);
-	
+
 	// 삭제할 인덱스 번호부터 끝까지 아이템을 하나씩 당기며, 만약 삭제한 아이템과 카테고리가 같다면 키를 1씩 줄입니다.
 	// 뒤에 추가된 아이템은 그 전 아이템보다는 키가 높을 것이니 이렇게 작성했습니다.
 	// 이렇게 하면 아이템을 추가할 때는 따로 shift를 안 해도 됩니다.
-	for(curr_idx = dele_idx ; curr_idx < total_item_cnt - 1 ; curr_idx++){
+	for (curr_idx = dele_idx; curr_idx < total_item_cnt - 1; curr_idx++)
+	{
 		items[curr_idx] = items[curr_idx + 1];
-		if(items[curr_idx].category == item.category) items[curr_idx].key --;
+		if (items[curr_idx].category == item.category)
+			items[curr_idx].key--;
 	}
 
 	switch (item.category)
