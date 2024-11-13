@@ -5,8 +5,10 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include "cafe.h"
 
+void backup_warning(int signum); // signal handler: SIGINT 발생 시 경고 문구
 void order_service(int sock);
 void print_welcome_msg();
 int print_and_return_menu_by_category(int category);
@@ -20,6 +22,7 @@ int main(int argc, char *argv[])
 		printf("Usage : %s <IP> <port>\n", argv[0]);
 		exit(1);
 	}
+	signal(SIGINT, backup_warning); // signal handler 등록
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
