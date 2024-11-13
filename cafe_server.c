@@ -105,7 +105,7 @@ void backup(int signum)
 
 	for (int i = 0; i < total_item_cnt; i++)
 	{
-		int fp;
+		FILE *fp;
 		switch (items[i].category)
 		{
 		case COFFEE:
