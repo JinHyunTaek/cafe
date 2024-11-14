@@ -5,6 +5,7 @@
 #define MENU_NAME_SIZE 20
 #define PWD_SIZE 20
 #define ADMIN_PWD "password"
+#define BACKUP_FREQUENCY 10
 
 #define ADMIN 1
 #define CLIENT 2

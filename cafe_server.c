@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/time.h>
 #include "cafe.h"
 #define MAX_USER 10000
 
@@ -34,6 +35,28 @@ int admin_show_item(ADMIN_RES_PACKET *);
 int admin_update_item(ITEM);
 int admin_delete_item(ITEM);
 
+// 타이머를 통한 주기적 백업 기능 구현을 위한 함수들입니다.
+int set_ticker(int timer_secs)
+{
+	// 원래 받는 단위는 msec긴 한데, 백업을 msec 단위로 할 일은 없을거 같아서
+	// 그냥 sec 로 퉁치겠습니다.
+	int msecs = timer_secs * 1000;
+
+	struct itimerval new_timeset;
+	long secs, usecs;
+
+	secs = (long)(msecs / 1000);
+	usecs = (long)(msecs % 1000) * 1000L ;
+
+	new_timeset.it_value.tv_sec = secs;
+	new_timeset.it_value.tv_usec = usecs;
+
+	new_timeset.it_interval.tv_sec = secs;
+	new_timeset.it_interval.tv_usec = usecs;
+
+	return setitimer(ITIMER_REAL, &new_timeset, NULL);
+}
+
 int main(int argc, char *argv[])
 {
 	int serv_sock, clnt_sock;
@@ -46,8 +69,11 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	// 주기적 백업을 위한 타이머 설정입니다.
+	set_ticker(BACKUP_FREQUENCY);
 	// 백업을 위한 signal handler 등록
 	signal(SIGINT, backup);
+	signal(SIGALRM, backup);
 
 	// 서버 소켓 바인딩, 리스닝 작업
 	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -129,7 +155,12 @@ void backup(int signum)
 	fclose(juice_fp);
 	fclose(brunch_fp);
 
-	exit(0);
+	// 어떤 신호에 의한 백업인지 좀 알고 싶어서 넣었습니다.
+	puts("BACK Up COMPLETED");
+	printf("SIGNAL = %d \n", signum);
+
+	// 타이머에 의한 백업일 땐 안 꺼지게 따로 뺐씁니다
+	if(signum == SIGINT) exit(0);
 }
 
 // 소비자 전용 핸들러
