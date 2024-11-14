@@ -1,3 +1,4 @@
 orange_juice 1 10 2000
 apple_juice 2 10 2000
 straw_juice 3 60 1200
+newJuice 4 7 10000

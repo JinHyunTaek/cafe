@@ -82,11 +82,7 @@ void handle_admin(int sock)
 		}
 		print_welcome_msg();
 		scanf("%d", &req_packet.cmd);
-
-		// 어떤 요청이든 요청 ( 잘못도된 요청 포함 )되면 일단 메뉴를 서버의 정보로 최신화힙니다.
-		write(sock, &dummy, sizeof(dummy));
-		read(sock, &recent_menu, sizeof(RECENT_MENU));
-
+		
 		switch (req_packet.cmd)
 		{
 
