@@ -65,9 +65,11 @@ int main(int argc, char *argv[])
 void handle_admin(int sock)
 {
 	int cmd;
+	char dummy = 0;
 	int islogin = 0;
 	ADMIN_REQ_PACKET req_packet;
 	ADMIN_RES_PACKET res_packet;
+	RECENT_MENU recent_menu;
 	memset(&req_packet, 0, sizeof(ADMIN_REQ_PACKET));
 	memset(&res_packet, 0, sizeof(ADMIN_RES_PACKET));
 
@@ -80,6 +82,11 @@ void handle_admin(int sock)
 		}
 		print_welcome_msg();
 		scanf("%d", &req_packet.cmd);
+
+		// 어떤 요청이든 요청 ( 잘못도된 요청 포함 )되면 일단 메뉴를 서버의 정보로 최신화힙니다.
+		write(sock, &dummy, sizeof(dummy));
+		read(sock, &recent_menu, sizeof(RECENT_MENU));
+
 		switch (req_packet.cmd)
 		{
 
@@ -362,8 +369,9 @@ void update_item(ADMIN_REQ_PACKET *req_packet)
 		break;
 	}
 	// 잘못된 입력에 대한 건 나중에 생각하겠습니다
-
 	print_nav();
+
+
 	print_menu_list(*req_packet);
 	printf("\tSelect Key:");
 	scanf("%d", &req_packet->item.key);

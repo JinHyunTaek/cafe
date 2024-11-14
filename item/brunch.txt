@@ -1,3 +1,4 @@
 sandwitch 1 5 3000
 toast 2 5 2000
 waffle 3 5 2500
+newBrunch 4 10 2500
