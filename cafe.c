@@ -37,6 +37,6 @@ int find_item_idx_by_category_and_key(int item_category, int item_key)
 
 // signal handler: server 외에서 SIGINT 발생 시 경고 문구
 void backup_warning(int signum) {
-	printf("\n[WARNING] SIGINT signal: Backup signal at server shutdown.\n");
-	printf("\t  No backup will be performed in this file.\n");
+	printf("\n[WARNING] SIGINT signal: Backup signal at \033[31mserver\033[0m shutdown.\n");
+	printf("\t  If you want to terminate this file, use the QUIT option.\n");
 }
