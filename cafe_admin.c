@@ -10,7 +10,6 @@
 #include <termio.h>
 #include "cafe.h"
 
-void backup_warning(int signum); // signal handler: SIGINT 발생 시 경고 문구
 void handle_admin(int sock);
 void error_handling(char *msg);
 

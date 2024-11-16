@@ -109,6 +109,7 @@ extern int tea_cnt;
 extern int juice_cnt;
 extern int brunch_cnt;
 
+void backup_warning(int signum); // signal handler: SIGINT 발생 시 경고 문구
 void return_main();
 void clear_terminal();
 void restore_menu();

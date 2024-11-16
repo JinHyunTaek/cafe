@@ -8,7 +8,6 @@
 #include <signal.h>
 #include "cafe.h"
 
-void backup_warning(int signum); // signal handler: SIGINT 발생 시 경고 문구
 void order_service(int sock);
 void print_welcome_msg();
 int print_and_return_menu_by_category(int category, int my_money);
