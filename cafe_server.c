@@ -155,11 +155,11 @@ void backup(int signum)
 	fclose(juice_fp);
 	fclose(brunch_fp);
 
-	// 어떤 신호에 의한 백업인지 좀 알고 싶어서 넣었습니다.
+	// 어떤 신호에 의한 백업인지 출력
 	puts("BACK Up COMPLETED");
-	printf("SIGNAL = %d \n", signum);
+	printf("by SIGNAL = %d \n", signum);
 
-	// 타이머에 의한 백업일 땐 안 꺼지게 따로 뺐씁니다
+	// SIGINT의 경우에만 종료
 	if(signum == SIGINT) exit(0);
 }
 
