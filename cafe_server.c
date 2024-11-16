@@ -299,10 +299,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 		break;
 	}
 	sprintf(res_msg, "Thank you for waiting! Your %s is now ready.", items[i].name);
-	pthread_mutex_lock(&mutex);
-	// 상품의 재고는 모든 스레드가 공유하는 자원이므로 상호 배제를 위한 동기화 필요
 	items[i].stock -= 1;
-	pthread_mutex_unlock(&mutex);
 	*result = READY;
 }
 
@@ -312,7 +309,11 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 // 메뉴 추가에 성공하면 1, 아니면 0를 반환합니다.
 int admin_add_item(ITEM item)
 {
-
+	for(int i=0;i<total_item_cnt;i++){
+		if(!strcmp(item.name,items[i].name)){
+			return -1; //duplicated item name
+		}
+	}
 	// 아이템의 카테고리에 맞춰 카테고리 메뉴 수와 전체 수를 더하고, server의 items 배열에 추가한 메뉴를 add 합니다.
 	// 아이템에 따라 여는 파일의 이름도 다릅니다.
 	switch (item.category)

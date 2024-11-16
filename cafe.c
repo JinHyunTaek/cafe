@@ -40,3 +40,17 @@ void backup_warning(int signum) {
 	printf("\n[WARNING] SIGINT signal: Backup signal at server shutdown.\n");
 	printf("\t  No backup will be performed in this file.\n");
 }
+
+void clear_terminal()
+{
+	printf("\033[3J"); // 스크롤 백 버퍼 지우기
+	printf("\033[2J"); // 화면 지우기
+	printf("\033[H");  // 커서를 좌상단으로 이동
+}
+
+void return_main()
+{
+	printf("\nPRESS Enter to Main");
+	getchar();
+	getchar();
+}

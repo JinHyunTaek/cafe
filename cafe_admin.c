@@ -19,11 +19,9 @@ void tty_mode(int);
 void set_noecho_mode();
 
 void print_welcome_msg();
-void clear_terminal();
 void print_nav();
 void print_category();
 void print_menu_list(ADMIN_REQ_PACKET);
-void return_main();
 void display_single_item(ITEM item);
 
 void synchronize_server(ADMIN_RES_PACKET);
@@ -157,6 +155,10 @@ void handle_admin(int sock)
 		else
 		{
 			puts("Request has been denied");
+			if(res_packet.cmd==ADD_ITEM && res_packet.result==-1){
+				puts("Reason : Item name already exists");
+				return_main();
+			}
 		}
 	}
 }
@@ -232,13 +234,6 @@ void print_welcome_msg()
 	printf("\tSelect Option: ");
 }
 
-void clear_terminal()
-{
-	printf("\033[3J"); // 스크롤 백 버퍼 지우기
-	printf("\033[2J"); // 화면 지우기
-	printf("\033[H");  // 커서를 좌상단으로 이동
-}
-
 void print_nav()
 {
 	puts("\n\t\t============ Menu ============");
@@ -264,13 +259,6 @@ void print_menu_list(ADMIN_REQ_PACKET req_packet)
 			display_single_item(items[i]);
 		}
 	}
-}
-
-void return_main()
-{
-	printf("\nPRESS Enter to Main");
-	getchar();
-	getchar();
 }
 
 // 한 ITEM 구조체를 [	카테고리	키	이름	수량	가격	] 형식으로 출력합니다. 각 속성 사이 공백은 탭입니다.

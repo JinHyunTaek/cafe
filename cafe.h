@@ -109,6 +109,8 @@ extern int tea_cnt;
 extern int juice_cnt;
 extern int brunch_cnt;
 
+void return_main();
+void clear_terminal();
 void restore_menu();
 int find_item_idx_by_category_and_key(int item_category, int item_key);
 void error_handling(char *msg);
