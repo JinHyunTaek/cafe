@@ -228,6 +228,7 @@ void login(int sock)
 // admin 전용 핸들러
 void *handle_admin(void *arg)
 {
+	char dummy;
 	int admin_sock = *(int *)arg;
 	ADMIN_REQ_PACKET req_packet;
 	ADMIN_RES_PACKET res_packet;
@@ -237,6 +238,15 @@ void *handle_admin(void *arg)
 	{ // 요청 패킷과 반응 패킷을 선언
 		memset(&req_packet, 0, sizeof(ADMIN_REQ_PACKET));
 		memset(&res_packet, 0, sizeof(ADMIN_RES_PACKET));
+
+		memset(&req_packet, 0, sizeof(REQ_PACKET));
+		memset(&res_packet, 0, sizeof(RES_PACKET));
+		if (read(admin_sock, &dummy, sizeof(dummy)) < sizeof(dummy))
+		{
+			error_handling("read()");
+		}
+		RECENT_MENU recent_menu = make_recent_menu();
+		write(admin_sock, &recent_menu, sizeof(RECENT_MENU));
 		// 어드민 소켓의 요청을 패킷에 저장받아 처리
 		read(admin_sock, &req_packet, sizeof(ADMIN_REQ_PACKET)); // blocked until write request is arrived by client
 
