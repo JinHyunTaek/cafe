@@ -22,6 +22,7 @@
 #define QUIT 2
 
 // cmd for admin
+#define RETURN_MAIN -1
 #define ADD_ITEM 1
 #define SHOW_ITEM 2
 #define UPDATE_ITEM 3
@@ -116,4 +117,6 @@ void restore_menu();
 int find_item_idx_by_category_and_key(int item_category, int item_key);
 void error_handling(char *msg);
 int get_item_size_per_category(int category);
+int get_visible_length(const char *);
+void print_centered(const char *);
 void initialize_item_info(RECENT_MENU recent_menu);
