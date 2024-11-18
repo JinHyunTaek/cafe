@@ -46,7 +46,7 @@ int set_ticker(int timer_secs)
 	long secs, usecs;
 
 	secs = (long)(msecs / 1000);
-	usecs = (long)(msecs % 1000) * 1000L ;
+	usecs = (long)(msecs % 1000) * 1000L;
 
 	new_timeset.it_value.tv_sec = secs;
 	new_timeset.it_value.tv_usec = usecs;
@@ -160,7 +160,8 @@ void backup(int signum)
 	printf("by SIGNAL = %d \n", signum);
 
 	// SIGINT의 경우에만 종료
-	if(signum == SIGINT) exit(0);
+	if (signum == SIGINT)
+		exit(0);
 }
 
 // 소비자 전용 핸들러
@@ -310,9 +311,11 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 // 메뉴 추가에 성공하면 1, 아니면 0를 반환합니다.
 int admin_add_item(ITEM item)
 {
-	for(int i=0;i<total_item_cnt;i++){
-		if(!strcmp(item.name,items[i].name)){
-			return -1; //duplicated item name
+	for (int i = 0; i < total_item_cnt; i++)
+	{
+		if (!strcmp(item.name, items[i].name))
+		{
+			return -1; // duplicated item name
 		}
 	}
 	// 아이템의 카테고리에 맞춰 카테고리 메뉴 수와 전체 수를 더하고, server의 items 배열에 추가한 메뉴를 add 합니다.

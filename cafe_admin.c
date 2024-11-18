@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <termio.h>
+#include <sys/ioctl.h>
 #include "cafe.h"
 
 void handle_admin(int sock);
@@ -29,7 +30,6 @@ void add_item(ADMIN_REQ_PACKET *);
 void show_item(ADMIN_REQ_PACKET *);
 void update_item(ADMIN_REQ_PACKET *);
 void delete_item(ADMIN_REQ_PACKET *);
-
 
 // 되돌아가기를 구현하려니 코드가 너무 길어져서 좀 모듈화했습니다.
 // -1을 입력받으면 cmd 값을 -1로 입력받고 이게 메뉴로 돌아가기 flag 입니다.
@@ -83,13 +83,15 @@ void handle_admin(int sock)
 			islogin = login(sock);
 		}
 		// 언제든 -1 입력시 뒤로 감을 표기
-		puts("Insert -1 anytime to go MeNu");
+		print_centered("\033[1;37;44mInsert -1 anytime to go Menu\033[0m\n\n");
 		print_welcome_msg();
 		scanf("%d", &req_packet.cmd);
-		
+
 		switch (req_packet.cmd)
 		{
-
+		case RETURN_MAIN:
+			return_main();
+			break;
 		case ADD_ITEM:
 			add_item(&req_packet);
 			break;
@@ -114,12 +116,6 @@ void handle_admin(int sock)
 			return;
 		default:
 			puts("Something didnt go well in cmd...");
-		}
-		
-		// 되돌아가기 명령을 받음
-		if(req_packet.cmd == -1){
-			return_main();
-			continue;
 		}
 
 		// 요청에 따라 만들어진 패킷을 전송
@@ -169,7 +165,8 @@ void handle_admin(int sock)
 		else
 		{
 			puts("Request has been denied");
-			if(res_packet.cmd==ADD_ITEM && res_packet.result==-1){
+			if (res_packet.cmd == ADD_ITEM && res_packet.result == -1)
+			{
 				puts("Reason : Item name already exists");
 				return_main();
 			}
@@ -238,29 +235,32 @@ void set_noecho_mode()
 
 void print_welcome_msg()
 {
-	puts("\t\t============ Main ============");
-	puts("\t1: Add item");
-	puts("\t2: Show items");
-	puts("\t3: Update item");
-	puts("\t4: Delete item");
-	puts("\t5: Show all customers");
-	puts("\t6: Quit\n");
-	printf("\tSelect Option: ");
+	print_centered("============ Main ============\n");
+	print_centered("1: Add item\n");
+	print_centered("2: Show items\n");
+	print_centered("3: Update item\n");
+	print_centered("4: Delete item\n");
+	print_centered("5: Show all customers\n");
+	print_centered("6: Quit\n");
+	print_centered("\nSelect Option: ");
 }
 
 void print_nav()
 {
-	puts("\n\t\t============ Menu ============");
-	printf("   category\tkey\t  name\t\tstock\tprice\n");
+	print_centered("============ Menu ============\n");
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), "%-16s%-16s%-16s%-16s%-16s\n", "category", "key", "name", "stock", "price");
+
+	print_centered(buffer);
 }
 
 void print_category()
 {
-	puts("\n\t\t========== Category ==========");
-	puts("\t1. Coffee");
-	puts("\t2. Tea");
-	puts("\t3. Juice");
-	puts("\t4. Brunch");
+	print_centered("========== Category ==========\n");
+	print_centered("1. Coffee\n");
+	print_centered("2. Tea\n");
+	print_centered("3. Juice\n");
+	print_centered("4. Brunch\n");
 }
 
 void print_menu_list(ADMIN_REQ_PACKET req_packet)
@@ -278,7 +278,10 @@ void print_menu_list(ADMIN_REQ_PACKET req_packet)
 // 한 ITEM 구조체를 [	카테고리	키	이름	수량	가격	] 형식으로 출력합니다. 각 속성 사이 공백은 탭입니다.
 void display_single_item(ITEM item)
 {
-	printf("	%d	%d	%-8s	%d	%d\n", item.category, item.key, item.name, item.stock, item.price);
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), "%-16d%-16d%-16s%-16d%-16d\n", item.category, item.key, item.name, item.stock, item.price);
+
+	print_centered(buffer);
 }
 
 // 각 요청이 끝난 뒤, 받아온 server의 items와 cnts를 동기화 시키는 작업입니다.
@@ -301,34 +304,41 @@ void synchronize_server(ADMIN_RES_PACKET res_packet)
 void add_item(ADMIN_REQ_PACKET *req_packet)
 {
 	// ITEM new_menu 에 아이템 속성을 입력받아 추가함.
-	printf("\n\t\t========== ADD Menu ==========");
+	print_centered("========== ADD Menu ==========\n");
 	print_category();
-	printf("\tSelect Category: ");
+	printf("\nSelect Category: ");
 	get_category_or_key_input(req_packet, 0);
-	if(req_packet->cmd == -1) return;
-	puts("\nInsert Name, Stock, Price of the menu\n");
+	if (req_packet->cmd == -1)
+		return;
+	printf("\nInsert Name, Stock, Price of the menu\n");
 
 	// 하나씩 입력하는게 직관적일 거 같아서 바꿨습니다.
 	while (1)
 	{
 
 		// 카테고리, 키 입력은 모듈화 했는데 각 기능마다 세부하게 다른건 이렇게 if 문 써서 하는 수밖에 없을거 같아요
-		printf("\t[Menu Name]: ");
+		printf("[Menu Name]: ");
 		scanf("%s", req_packet->item.name);
-		if( strcmp(req_packet->item.name, "-1") == 0){
-			req_packet->cmd = -1; return;
+		if (strcmp(req_packet->item.name, "-1") == 0)
+		{
+			req_packet->cmd = -1;
+			return;
 		}
 
-		printf("\t[Item Stock]: ");
+		printf("[Item Stock]: ");
 		scanf("%d", &req_packet->item.stock);
-		if(req_packet->item.stock == -1){
-			req_packet->cmd = -1; return;
+		if (req_packet->item.stock == -1)
+		{
+			req_packet->cmd = -1;
+			return;
 		}
 
-		printf("\t[Item Price]: ");
+		printf("[Item Price]: ");
 		scanf("%d", &req_packet->item.price);
-		if(req_packet->item.price == -1){
-			req_packet->cmd = -1; return;
+		if (req_packet->item.price == -1)
+		{
+			req_packet->cmd = -1;
+			return;
 		}
 
 		// error handling?
@@ -339,50 +349,58 @@ void add_item(ADMIN_REQ_PACKET *req_packet)
 void show_item(ADMIN_REQ_PACKET *req_packet)
 {
 	print_category();
-	printf("\tSelect Category: ");
+	print_centered("\nSelect Category: ");
 	get_category_or_key_input(req_packet, 0);
 }
 
 void update_item(ADMIN_REQ_PACKET *req_packet)
 {
 
-	printf("\n\t\t========= Update Menu ========");
+	print_centered("========= Update Menu ========\n");
 	// 수정할 카테고리와 키를 입력하는 과정
 	print_category();
-	printf("\tSelect Category: ");
-	get_category_or_key_input(req_packet,0);
-	if(req_packet->cmd == -1) return;
+	printf("\nSelect Category: ");
+	get_category_or_key_input(req_packet, 0);
+	if (req_packet->cmd == -1)
+		return;
 
 	print_nav();
 	print_menu_list(*req_packet);
-	printf("\tSelect Key:");
-	get_category_or_key_input(req_packet,1);
-	if(req_packet->cmd == -1) return;
+	printf("Select Key:");
+	get_category_or_key_input(req_packet, 1);
+	if (req_packet->cmd == -1)
+		return;
 
 	int modi = 0;
-	printf("\tSelect Modify Option 1. Stock / 2. Price : ");
+	printf("Select Modify Option [1. Stock / 2. Price] : ");
 	scanf("%d", &modi);
 
 	// 아래도 모두 -1 입력시 돌아가기 기능 구현
-	if (modi == -1){
-		req_packet->cmd = -1; return;
+	if (modi == -1)
+	{
+		req_packet->cmd = -1;
+		return;
 	}
 
 	if (modi == 1)
 	{
-		printf("\t[Item Stock] : ");
+		printf("[Item Stock] : ");
 		scanf("%d", &req_packet->item.stock);
-		if(req_packet->item.stock == -1){
-			req_packet->cmd = -1; return;
+		if (req_packet->item.stock == -1)
+		{
+			req_packet->cmd = -1;
+			return;
 		}
 		req_packet->item.price = -1; // -1 --> 이 값은 변경하지 말아라
 	}
 	else if (modi == 2)
 	{
-		printf("\t[Item Price] : ");
+		printf("[Item Price] : ");
 		scanf("%d", &req_packet->item.price);
-		if(req_packet->item.price == -1){
-			req_packet->cmd = -1; return;
+		if (req_packet->item.price == -1)
+		{
+			req_packet->cmd = -1;
+			return;
 		}
 		req_packet->item.stock = -1;
 	}
@@ -397,51 +415,67 @@ void delete_item(ADMIN_REQ_PACKET *req_packet)
 {
 
 	// 예도 입력 오류는 나중에 생각할게요
-	printf("\n\t\t========= Delete Menu ========");
+	print_centered("========= Delete Menu ========\n");
 	print_category();
-	printf("\tSelect Category: ");
-	get_category_or_key_input(req_packet,0);
-	if(req_packet->cmd == -1) return;
-	
+	printf("Select Category: ");
+	get_category_or_key_input(req_packet, 0);
+	if (req_packet->cmd == -1)
+		return;
+
 	print_nav();
 	print_menu_list(*req_packet);
 
-	printf("\tSelect Key: ");
-	get_category_or_key_input(req_packet,1);
-	if(req_packet->cmd == -1) return;
+	printf("Select Key: ");
+	get_category_or_key_input(req_packet, 1);
+	if (req_packet->cmd == -1)
+		return;
 }
 
 // 카테고리 및 키 입력을 req_packet에 넘겨주는 기능을 합니다. 이 떄 mode == 0 이면 카테고리, 1 이면 키 입력을 뜻합니다.
 void get_category_or_key_input(ADMIN_REQ_PACKET *req_packet, int mode)
 {
 	// 카테고리를 입력 받는 경우입니다.
-	if(mode == 0){
+	if (mode == 0)
+	{
 		while (1)
 		{
-			scanf("%d", &req_packet->item.category); 
+			scanf("%d", &req_packet->item.category);
 			if ((req_packet->item.category < 1) || (req_packet->item.category > CATEGORY_SIZE))
 			{
 				// -1 이면 되돌아가기
-				if(req_packet->item.category == -1){
+				if (req_packet->item.category == -1)
+				{
 					req_packet->cmd = -1;
 					return;
 				}
 				printf("	< Please Enter valid value ( 1 ~ %d ) > : ", CATEGORY_SIZE);
 				continue;
 			}
-			
+
 			break;
 		}
 	}
 	// 키를 입력 받는 경우입니다.
-	if(mode == 1){
+	if (mode == 1)
+	{
 		int key_size;
-		switch(req_packet->item.category){
-			case COFFEE: key_size = coffee_cnt; break; 
-			case TEA : key_size = tea_cnt; break;
-			case JUICE : key_size = juice_cnt; break;
-			case BRUNCH : key_size = brunch_cnt; break;
-			default: puts("wrong category"); break;
+		switch (req_packet->item.category)
+		{
+		case COFFEE:
+			key_size = coffee_cnt;
+			break;
+		case TEA:
+			key_size = tea_cnt;
+			break;
+		case JUICE:
+			key_size = juice_cnt;
+			break;
+		case BRUNCH:
+			key_size = brunch_cnt;
+			break;
+		default:
+			puts("wrong category");
+			break;
 		}
 		while (1)
 		{
@@ -449,7 +483,8 @@ void get_category_or_key_input(ADMIN_REQ_PACKET *req_packet, int mode)
 			if ((req_packet->item.key < 1) || (req_packet->item.key > key_size))
 			{
 				// -1 이면 되돌아가기
-				if(req_packet->item.key == -1){
+				if (req_packet->item.key == -1)
+				{
 					req_packet->cmd = -1;
 					return;
 				}
