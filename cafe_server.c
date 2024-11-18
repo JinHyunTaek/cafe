@@ -258,6 +258,7 @@ void *handle_admin(void *arg)
 			break;
 		case ADMIN_QUIT:
 			remove_clnt(admin_sock);
+			pthread_mutex_unlock(&mutex);
 			return NULL;
 		default:
 			break;
