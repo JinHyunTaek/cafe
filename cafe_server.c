@@ -15,7 +15,8 @@ int clnt_socks[MAX_USER];
 int clnt_cnt; // (connected)
 int waiting_clnt;
 
-pthread_mutex_t mutex; // note that all (multi) threads are sharing this mutex variable
+pthread_mutex_t admin_mutex = PTHREAD_MUTEX_INITIALIZER; 
+pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER; 
 
 RECENT_MENU make_recent_menu();
 void make_menu(int item_category, int item_key, char *res_msg, int *result);
@@ -111,7 +112,8 @@ int main(int argc, char *argv[])
 		pthread_detach(t_id);
 	}
 	// 종료시 delete mutex, 서버 소켓도 닫음
-	pthread_mutex_destroy(&mutex);
+	pthread_mutex_destroy(&admin_mutex);
+	pthread_mutex_destroy(&client_mutex);
 	close(serv_sock);
 }
 
@@ -241,7 +243,7 @@ void *handle_admin(void *arg)
 		read(admin_sock, &req_packet, sizeof(ADMIN_REQ_PACKET)); // blocked until write request is arrived by client
 
 		res_packet.cmd = req_packet.cmd;
-		pthread_mutex_lock(&mutex); // most(ADD, UPDATE, DELETE) operations admin does need to be locked for synchronization
+		pthread_mutex_lock(&admin_mutex); // most(ADD, UPDATE, DELETE) operations admin does need to be locked for synchronization
 		// 어드민이 입력한 cmd 값에 따라 해당 기능들을 수행합니다.
 		switch (req_packet.cmd)
 		{
@@ -259,7 +261,7 @@ void *handle_admin(void *arg)
 			break;
 		case ADMIN_QUIT:
 			remove_clnt(admin_sock);
-			pthread_mutex_unlock(&mutex);
+			pthread_mutex_unlock(&admin_mutex);
 			return NULL;
 		default:
 			break;
@@ -269,7 +271,7 @@ void *handle_admin(void *arg)
 		// 모든 기능에서 items를 수정하든 뭘하든 이 과정을 통해 동기화 됩니다.
 		add_item_to_res_packet(&res_packet);
 
-		pthread_mutex_unlock(&mutex); // unlock when operation end
+		pthread_mutex_unlock(&admin_mutex); // unlock when operation end
 		// 어드민이 요청한 입력이 잘 처리 됐는지, 어떤 요청이 처리됐는지 등을 전해줍니다.
 		write(admin_sock, &res_packet, sizeof(ADMIN_RES_PACKET));
 		printf("Accomplished. cmd = %d, result = %d\n", res_packet.cmd, res_packet.result);
@@ -301,7 +303,9 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 		break;
 	}
 	sprintf(res_msg, "Thank you for waiting! Your %s is now ready.", items[i].name);
+	pthread_mutex_lock(&client_mutex);
 	items[i].stock -= 1;
+	pthread_mutex_unlock(&client_mutex);
 	*result = READY;
 }
 
