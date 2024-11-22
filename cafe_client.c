@@ -10,7 +10,7 @@
 
 void order_service(int sock);
 void print_welcome_msg();
-int print_and_return_menu_by_category(int category, int my_money);
+int print_and_return_menu_by_category(int category);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 void order_service(int sock)
 {
 	char dummy = 0; // just exists write needs some data
-	int my_money = 0, is_continue;
+	int pay=0, is_continue;
 	RECENT_MENU recent_menu;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
@@ -74,23 +74,23 @@ void order_service(int sock)
 					continue;
 				}
 				initialize_item_info(recent_menu);
-				while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category, my_money)) == -1)
+				while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category)) == -1)
 					;
 				int item_idx = find_item_idx_by_category_and_key(req_packet.item_category, req_packet.item_key);
 				// 현재 남아 있는 잔액이 선택한 상품의 가격보다 낮은 경우 잔액 충전
-				while (my_money < items[item_idx].price)
+				while (1)
 				{
-					int temp;
-					printf("Recharge your balance (Item price : %d, Current balance : %d): ", items[item_idx].price, my_money);
-					scanf("%d", &temp);
-					my_money += temp;
+					printf("Pay same amout of money with item (item price : %d): ", items[item_idx].price);
+					scanf("%d", &pay);
+					if(pay != items[item_idx].price){
+						printf("Pay again please. (Item price : %d, Your input : %d)\n",items[item_idx].price,pay);
+					}
+					else{
+						break;
+					}
 				}
 				write(sock, &req_packet, sizeof(REQ_PACKET));
 				read(sock, &res_packet, sizeof(RES_PACKET));
-				if (res_packet.result != OUT_OF_STOCK)
-				{ // 주문이 성공적으로 된 경우, 주문한 상품의 가격만큼 지불
-					my_money -= items[item_idx].price;
-				}
 				puts(res_packet.res_msg);
 				return_main();
 				break;
@@ -102,7 +102,7 @@ void order_service(int sock)
 	}
 }
 
-int print_and_return_menu_by_category(int category, int my_money)
+int print_and_return_menu_by_category(int category)
 {
 	int item_key;
 	switch (category)
@@ -112,7 +112,7 @@ int print_and_return_menu_by_category(int category, int my_money)
 		for (int i = 0; i < total_item_cnt; i++)
 			if (items[i].category == COFFEE)
 				printf("menu name: %s, choice : %d, price: %d, \n", items[i].name, items[i].price, items[i].price);
-		printf("[Your balance: %d] Enter your choice: (1~%d): ", my_money, coffee_cnt);
+		printf("Enter your choice: (1~%d): ",coffee_cnt);
 		scanf("%d", &item_key);
 		if (item_key < 1 || item_key > coffee_cnt)
 			return -1;
@@ -122,7 +122,7 @@ int print_and_return_menu_by_category(int category, int my_money)
 		for (int i = 0; i < total_item_cnt; i++)
 			if (items[i].category == TEA)
 				printf("menu name: %s, choice : %d, price: %d, \n", items[i].name, items[i].price, items[i].price);
-		printf("[Your balance: %d] Enter your choice: (1~%d): ", my_money, tea_cnt);
+		printf("Enter your choice: (1~%d): ",tea_cnt);
 
 		scanf("%d", &item_key);
 		if (item_key < 1 || item_key > tea_cnt)
@@ -134,7 +134,7 @@ int print_and_return_menu_by_category(int category, int my_money)
 			if (items[i].category == JUICE)
 				printf("menu name: %s, choice : %d, price: %d, \n", items[i].name, items[i].price, items[i].price);
 
-		printf("[Your balance: %d] Enter your choice: (1~%d): ", my_money, juice_cnt);
+		printf("Enter your choice: (1~%d): ", juice_cnt);
 
 		scanf("%d", &item_key);
 		if (item_key < 1 || item_key > juice_cnt)
@@ -145,7 +145,7 @@ int print_and_return_menu_by_category(int category, int my_money)
 		for (int i = 0; i < total_item_cnt; i++)
 			if (items[i].category == BRUNCH)
 				printf("menu name: %s, choice : %d, price: %d, \n", items[i].name, items[i].price, items[i].price);
-		printf("[Your balance: %d] Enter your choice: (1~%d): ", my_money, brunch_cnt);
+		printf("Enter your choice: (1~%d): ", brunch_cnt);
 
 		scanf("%d", &item_key);
 		if (item_key < 1 || item_key > brunch_cnt)
