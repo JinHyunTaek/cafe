@@ -82,6 +82,13 @@ void handle_admin(int sock)
 		{
 			islogin = login(sock);
 		}
+		
+		// 메뉴로 돌아올 때 마다 메뉴를 최신화
+		write(sock, &dummy, sizeof(dummy));
+		if (read(sock, &recent_menu, sizeof(RECENT_MENU)) < sizeof(RECENT_MENU))
+			error_handling("read()");
+		initialize_item_info(recent_menu);
+
 		// 언제든 -1 입력시 뒤로 감을 표기
 		print_centered("\033[1;37;44mInsert -1 anytime to go Menu\033[0m\n\n");
 		print_welcome_msg();
