@@ -15,8 +15,8 @@ int clnt_socks[MAX_USER];
 int clnt_cnt; // (connected)
 int waiting_clnt;
 
-pthread_mutex_t admin_mutex = PTHREAD_MUTEX_INITIALIZER; 
-pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER; 
+pthread_mutex_t admin_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 RECENT_MENU make_recent_menu();
 void make_menu(int item_category, int item_key, char *res_msg, int *result);
@@ -229,7 +229,7 @@ void login(int sock)
 
 // admin 전용 핸들러
 void *handle_admin(void *arg)
-{	
+{
 	char dummy = 0;
 	int admin_sock = *(int *)arg;
 	ADMIN_REQ_PACKET req_packet;
@@ -248,7 +248,7 @@ void *handle_admin(void *arg)
 		}
 		recent_menu = make_recent_menu();
 		write(admin_sock, &recent_menu, sizeof(RECENT_MENU));
-		
+
 		// 어드민 소켓의 요청을 패킷에 저장받아 처리
 		read(admin_sock, &req_packet, sizeof(ADMIN_REQ_PACKET)); // blocked until write request is arrived by client
 
@@ -294,7 +294,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 	int i = find_item_idx_by_category_and_key(item_category, item_key);
 	if (!items[i].stock)
 	{
-		sprintf(res_msg, "Sorry. Item %s is currently out of stock.", items[i].name);
+		sprintf(res_msg, "\nSorry. Item %s is currently out of stock.", items[i].name);
 		*result = OUT_OF_STOCK;
 	}
 	switch (item_category)
@@ -312,7 +312,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 		sleep(W_BRUNCH);
 		break;
 	}
-	sprintf(res_msg, "Thank you for waiting! Your %s is now ready.", items[i].name);
+	sprintf(res_msg, "\nThank you for waiting! Your %s is now ready.", items[i].name);
 	pthread_mutex_lock(&client_mutex);
 	items[i].stock -= 1;
 	pthread_mutex_unlock(&client_mutex);
