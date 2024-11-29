@@ -89,7 +89,7 @@ void handle_admin(int sock)
 			error_handling("read()");
 		initialize_item_info(recent_menu);
 
-		// 언제든 -1 입력시 뒤로 감을 표기
+		// 언제든 -1 입력 시 메뉴로 돌아감을 표기
 		print_centered("\033[1;37;44mInsert -1 anytime to go Menu\033[0m\n\n");
 		print_welcome_msg();
 		scanf("%d", &req_packet.cmd);

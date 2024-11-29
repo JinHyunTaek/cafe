@@ -47,6 +47,7 @@ void order_service(int sock)
 {
 	char dummy = 0; // just exists write needs some data
 	int pay = 0, is_continue;
+	int order_proceed;
 	RECENT_MENU recent_menu;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
@@ -61,6 +62,8 @@ void order_service(int sock)
 			is_continue = 0;
 			memset(&req_packet, 0, sizeof(REQ_PACKET));
 			memset(&res_packet, 0, sizeof(RES_PACKET));
+			// 언제든 -1 입력 시 메뉴로 돌아감을 표기
+			print_centered("\033[1;37;44mInsert -1 anytime to go Menu\033[0m\n\n");
 			print_welcome_msg();
 			scanf("%d", &req_packet.cmd);
 			if (req_packet.cmd < ORDER || req_packet.cmd > QUIT)
@@ -81,7 +84,16 @@ void order_service(int sock)
 				}
 				initialize_item_info(recent_menu);
 				while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category)) == -1)
-					;
+				{
+					if (req_packet.item_key == 0) // go back to the menu
+						break;
+				}
+				if (req_packet.item_key == 0) // go back to the menu
+				{
+					is_continue = 1;
+					continue;
+				}
+
 				int item_idx = find_item_idx_by_category_and_key(req_packet.item_category, req_packet.item_key);
 				// 현재 남아 있는 잔액이 선택한 상품의 가격보다 낮은 경우 잔액 충전
 				while (1)
@@ -90,6 +102,8 @@ void order_service(int sock)
 					{
 						printf("\nQuantity : ");
 						scanf("%d", &req_packet.quantity);
+						if (req_packet.quantity == -1) // go back to the menu
+							break;
 						if (req_packet.quantity < 1)
 						{
 							puts("\nYou should input at least 1 quantity.");
@@ -99,8 +113,12 @@ void order_service(int sock)
 							break;
 						}
 					}
+					if (req_packet.quantity == -1) // go back to the menu
+						break;
 					printf("\n[Pay] ₩%d: ", items[item_idx].price * req_packet.quantity);
 					scanf("%d", &pay);
+					if (pay == -1) // go back to the menu
+							break;
 					if (pay != items[item_idx].price * req_packet.quantity)
 					{
 						printf("[Pay] again please ₩%d, Your input : %d\n", items[item_idx].price * req_packet.quantity, pay);
@@ -110,6 +128,31 @@ void order_service(int sock)
 						break;
 					}
 				}
+
+				if (req_packet.quantity == -1 || pay == -1) // go back to the menu
+				{
+					is_continue = 1;
+					continue;
+				}
+
+				// 주문 확인
+				printf("\nHere is your order details.\n");
+				printf("-----------------------------\n");
+				printf(" Menu Name: %s\n", items[item_idx].name);
+				printf(" Quantity: %d\n", req_packet.quantity);
+				printf("-----------------------------\n");
+				while (1) {
+					printf("Shall we proceed with the order? (1:yes/0:no): ");
+					scanf("%d", &order_proceed);
+					if (order_proceed == 1 || order_proceed == 0 || order_proceed == -1)
+						break;
+				}
+				if (order_proceed == 0 || order_proceed == -1) // go back to the menu
+				{
+					is_continue = 1;
+					continue;
+				}
+
 				write(sock, &req_packet, sizeof(REQ_PACKET));
 				read(sock, &res_packet, sizeof(RES_PACKET));
 				puts(res_packet.res_msg);
@@ -136,6 +179,8 @@ int print_and_return_menu_by_category(int category)
 		printf("\nSelect Menu (1~%d): ", coffee_cnt);
 
 		scanf("%d", &item_key);
+		if (item_key == -1) // go back to the menu
+			return 0;
 		if (item_key < 1 || item_key > coffee_cnt)
 			return -1;
 		return item_key;
@@ -148,6 +193,8 @@ int print_and_return_menu_by_category(int category)
 		printf("\nSelect Menu (1~%d): ", tea_cnt);
 
 		scanf("%d", &item_key);
+		if (item_key == -1) // go back to the menu
+			return 0;
 		if (item_key < 1 || item_key > tea_cnt)
 			return -1;
 		return item_key;
@@ -161,6 +208,8 @@ int print_and_return_menu_by_category(int category)
 		printf("\nSelect Menu (1~%d): ", juice_cnt);
 
 		scanf("%d", &item_key);
+		if (item_key == -1) // go back to the menu
+			return 0;
 		if (item_key < 1 || item_key > juice_cnt)
 			return -1;
 		return item_key;
@@ -173,6 +222,8 @@ int print_and_return_menu_by_category(int category)
 		printf("\nSelect Menu (1~%d): ", brunch_cnt);
 
 		scanf("%d", &item_key);
+		if (item_key == -1) // go back to the menu
+			return 0;
 		if (item_key < 1 || item_key > brunch_cnt)
 			return -1;
 		return item_key;
