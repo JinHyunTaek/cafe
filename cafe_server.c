@@ -292,11 +292,16 @@ void *handle_admin(void *arg)
 void make_menu(int item_category, int item_key, char *res_msg, int *result)
 {
 	int i = find_item_idx_by_category_and_key(item_category, item_key);
-	if (!items[i].stock)
+	// mutex와 item stock을 빼는 시간을 바꿔서 stock이 없는데 주문을 받는 경우를 없앰
+	pthread_mutex_lock(&client_mutex);
+	if (items[i].stock <= 0 )
 	{
 		sprintf(res_msg, "\nSorry. Item %s is currently out of stock.", items[i].name);
 		*result = OUT_OF_STOCK;
+		return;
 	}
+	items[i].stock -= 1;
+	pthread_mutex_unlock(&client_mutex);
 	switch (item_category)
 	{
 	case COFFEE:
@@ -313,9 +318,7 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 		break;
 	}
 	sprintf(res_msg, "\nThank you for waiting! Your %s is now ready.", items[i].name);
-	pthread_mutex_lock(&client_mutex);
-	items[i].stock -= 1;
-	pthread_mutex_unlock(&client_mutex);
+	
 	*result = READY;
 }
 
