@@ -19,7 +19,7 @@ pthread_mutex_t admin_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 RECENT_MENU make_recent_menu();
-void make_menu(int item_category, int item_key, char *res_msg, int *result);
+void make_menu(int item_category, int item_key, int quantity, char *res_msg, int *result);
 void backup(int signum); // signal handler : 종료 시 백업
 void error_handling(char *msg);
 void *handle_clnt(void *arg);
@@ -194,7 +194,7 @@ void *handle_clnt(void *arg)
 			return NULL;
 		case ORDER: // 클라이언트가 주문 cmd 를 실행
 			// 요청 패킷의 아이템 카테고리와 아이템 번호를 input으로 받아 반응 패킷의 msg를 저장 ( 메뉴 준비됐다는 메세지 )
-			make_menu(req_packet.item_category, req_packet.item_key, res_packet.res_msg, &(res_packet.result));
+			make_menu(req_packet.item_category, req_packet.item_key, req_packet.quantity, res_packet.res_msg, &(res_packet.result));
 			memcpy(res_packet.items, items, sizeof(ITEM) * MAX_ITEM);
 			// 클라이언트 소켓으로 반응 패킷 전달 ( 메뉴가 준비 다 되었다는 메세지 )
 			write(clnt_sock, &res_packet, sizeof(RES_PACKET));
@@ -289,7 +289,7 @@ void *handle_admin(void *arg)
 }
 
 // 메뉴가 만들어질 때까지 기다리고, 해당 메뉴의 이름 및 주문 상태(READY / OUT_OF_STOCK)를 응답 패킷에 전달하는 함수
-void make_menu(int item_category, int item_key, char *res_msg, int *result)
+void make_menu(int item_category, int item_key, int quantity, char *res_msg, int *result)
 {
 	int i = find_item_idx_by_category_and_key(item_category, item_key);
 	// mutex와 item stock을 빼는 시간을 바꿔서 stock이 없는데 주문을 받는 경우를 없앰
@@ -298,9 +298,16 @@ void make_menu(int item_category, int item_key, char *res_msg, int *result)
 	{
 		sprintf(res_msg, "\nSorry. Item %s is currently out of stock.", items[i].name);
 		*result = OUT_OF_STOCK;
+		pthread_mutex_unlock(&client_mutex);
 		return;
 	}
-	items[i].stock -= 1;
+	else if(items[i].stock-quantity<0){
+		sprintf(res_msg, "\nSorry. There are only %d %s left.", items[i].stock, items[i].name);
+		*result = STOCK_LACK;
+		pthread_mutex_unlock(&client_mutex);
+		return;
+	}
+	items[i].stock -= quantity;
 	pthread_mutex_unlock(&client_mutex);
 	switch (item_category)
 	{

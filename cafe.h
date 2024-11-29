@@ -40,6 +40,7 @@
 // #define WAITING 1
 #define READY 2
 #define OUT_OF_STOCK 3
+#define STOCK_LACK 4
 
 // 파일에는 name key stock price 순으로 저장됨
 typedef struct ITEM
@@ -63,6 +64,7 @@ typedef struct REQ_PACKET
 	int cmd;
 	int item_category;
 	int item_key;
+	int quantity;
 } REQ_PACKET;
 
 typedef struct RES_PACKET

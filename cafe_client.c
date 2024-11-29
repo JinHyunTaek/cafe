@@ -86,11 +86,24 @@ void order_service(int sock)
 				// 현재 남아 있는 잔액이 선택한 상품의 가격보다 낮은 경우 잔액 충전
 				while (1)
 				{
-					printf("\n[Pay] ₩%d: ", items[item_idx].price);
-					scanf("%d", &pay);
-					if (pay != items[item_idx].price)
+					while (1)
 					{
-						printf("[Pay] again please ₩%d, Your input : %d\n", items[item_idx].price, pay);
+						printf("\nQuantity : ");
+						scanf("%d", &req_packet.quantity);
+						if (req_packet.quantity < 1)
+						{
+							puts("\nYou should input at least 1 quantity.");
+						}
+						else
+						{
+							break;
+						}
+					}
+					printf("\n[Pay] ₩%d: ", items[item_idx].price * req_packet.quantity);
+					scanf("%d", &pay);
+					if (pay != items[item_idx].price * req_packet.quantity)
+					{
+						printf("[Pay] again please ₩%d, Your input : %d\n", items[item_idx].price * req_packet.quantity, pay);
 					}
 					else
 					{
