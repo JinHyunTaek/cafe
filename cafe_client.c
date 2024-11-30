@@ -56,7 +56,7 @@ void order_service(int sock)
 		write(sock, &dummy, sizeof(dummy));
 		if (read(sock, &recent_menu, sizeof(RECENT_MENU)) < sizeof(RECENT_MENU))
 			error_handling("read()");
-		do
+	do
 		{
 			clear_terminal();
 			is_continue = 0;
@@ -140,6 +140,7 @@ void order_service(int sock)
 				printf("-----------------------------\n");
 				printf(" Menu Name: %s\n", items[item_idx].name);
 				printf(" Quantity: %d\n", req_packet.quantity);
+				printf(" Total Price: %d\n", pay);
 				printf("-----------------------------\n");
 				while (1) {
 					printf("Shall we proceed with the order? (1:yes/0:no): ");
@@ -250,7 +251,7 @@ void print_category()
 void print_menu(int x)
 {
 	char buffer[256];
-	snprintf(buffer, sizeof(buffer), "%-3d%-16s ₩%d\n", items[x].key, items[x].name, items[x].price);
+	snprintf(buffer, sizeof(buffer), "%-3d%-16s %7d ₩\n", items[x].key, items[x].name, items[x].price);
 
 	print_centered(buffer);
 }
