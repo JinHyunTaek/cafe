@@ -27,8 +27,7 @@
 #define SHOW_ITEM 2
 #define UPDATE_ITEM 3
 #define DELETE_ITEM 4
-#define SHOW_CUSTOMER 5
-#define ADMIN_QUIT 6
+#define ADMIN_QUIT 5
 
 // waiting(sleep) time
 #define W_COFFEE 2

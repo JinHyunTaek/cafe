@@ -111,18 +111,13 @@ void handle_admin(int sock)
 		case DELETE_ITEM:
 			delete_item(&req_packet);
 			break;
-		case SHOW_CUSTOMER:
-			// 구현해주세요!
-			// 현재 미구현이라 메뉴로 돌아가는걸로 해둘게요
-			req_packet.cmd = -1;
-			break;
-
 		case ADMIN_QUIT:
 			write(sock, &req_packet, sizeof(ADMIN_REQ_PACKET));
 			system("clear");
 			return;
 		default:
-			puts("Something didnt go well in cmd...");
+			puts("< Wrong cmd input >");
+			return_main();
 		}
 
 		// 요청에 따라 만들어진 패킷을 전송
@@ -247,8 +242,7 @@ void print_welcome_msg()
 	print_centered("2: Show items\n");
 	print_centered("3: Update item\n");
 	print_centered("4: Delete item\n");
-	print_centered("5: Show all customers\n");
-	print_centered("6: Quit\n");
+	print_centered("5: Quit\n");
 	print_centered("\nSelect Option: ");
 }
 

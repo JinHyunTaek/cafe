@@ -85,6 +85,9 @@ void order_service(int sock)
 				initialize_item_info(recent_menu);
 				while ((req_packet.item_key = print_and_return_menu_by_category(req_packet.item_category)) == -1)
 				{
+					// 입력값이 비정상적이면 경고문 출력
+					if (req_packet.item_key == -1)
+						puts("Wrong intput!");
 					if (req_packet.item_key == 0) // go back to the menu
 						break;
 				}
@@ -150,6 +153,8 @@ void order_service(int sock)
 				}
 				if (order_proceed == 0 || order_proceed == -1) // go back to the menu
 				{
+					printf("Order has been canceled\nPay has been returned.\n");
+					return_main();
 					is_continue = 1;
 					continue;
 				}
