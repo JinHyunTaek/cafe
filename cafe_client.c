@@ -45,18 +45,18 @@ int main(int argc, char *argv[])
 
 void order_service(int sock)
 {
-	char dummy = 0; // just exists write needs some data
-	int pay = 0, is_continue;
-	int order_proceed;
 	RECENT_MENU recent_menu;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
+	char dummy = 0; // just exists write needs some data
+	write(sock, &dummy, sizeof(dummy));
+	if (read(sock, &recent_menu, sizeof(RECENT_MENU)) < sizeof(RECENT_MENU))
+		error_handling("read()");
+	int pay = 0, is_continue;
+	int order_proceed;
 	while (1)
 	{
-		write(sock, &dummy, sizeof(dummy));
-		if (read(sock, &recent_menu, sizeof(RECENT_MENU)) < sizeof(RECENT_MENU))
-			error_handling("read()");
-	do
+		do
 		{
 			clear_terminal();
 			is_continue = 0;
@@ -121,7 +121,7 @@ void order_service(int sock)
 					printf("\n[Pay] ₩%d: ", items[item_idx].price * req_packet.quantity);
 					scanf("%d", &pay);
 					if (pay == -1) // go back to the menu
-							break;
+						break;
 					if (pay != items[item_idx].price * req_packet.quantity)
 					{
 						printf("[Pay] again please ₩%d, Your input : %d\n", items[item_idx].price * req_packet.quantity, pay);
@@ -145,7 +145,8 @@ void order_service(int sock)
 				printf(" Quantity: %d\n", req_packet.quantity);
 				printf(" Total Price: %d\n", pay);
 				printf("-----------------------------\n");
-				while (1) {
+				while (1)
+				{
 					printf("Shall we proceed with the order? (1:yes/0:no): ");
 					scanf("%d", &order_proceed);
 					if (order_proceed == 1 || order_proceed == 0 || order_proceed == -1)

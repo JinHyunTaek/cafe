@@ -1,3 +1,4 @@
-apple_juice 1 10 2000
+apple_juice 1 9 2000
 orange_juice 2 0 2000
 chamomile 3 50 5400
+tea123 4 1234 1234

@@ -173,17 +173,16 @@ void *handle_clnt(void *arg)
 	int clnt_sock = *(int *)arg;
 	REQ_PACKET req_packet;
 	RES_PACKET res_packet;
-	RECENT_MENU recent_menu;
+	RECENT_MENU recent_menu = make_recent_menu();
+	if (read(clnt_sock, &dummy, sizeof(dummy)) < sizeof(dummy))
+		{
+			error_handling("read()");
+		}
+	write(clnt_sock, &recent_menu, sizeof(RECENT_MENU));
 	while (1)
 	{
 		memset(&req_packet, 0, sizeof(REQ_PACKET));
 		memset(&res_packet, 0, sizeof(RES_PACKET));
-		if (read(clnt_sock, &dummy, sizeof(dummy)) < sizeof(dummy))
-		{
-			error_handling("read()");
-		}
-		RECENT_MENU recent_menu = make_recent_menu();
-		write(clnt_sock, &recent_menu, sizeof(RECENT_MENU));
 		// 클라이언트 소켓의 요청을 패킷에 저장받아 처리
 		read(clnt_sock, &req_packet, sizeof(REQ_PACKET)); // blocked until write request is arrived by client
 		// 요청 패킷의 cmd 값 ( 클라이언트가 입력한 명령어 ) 에 따라 아래 내용을 수행
